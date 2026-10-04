@@ -1,0 +1,103 @@
+# Helix RND — .gitignore
+
+# Build directories
+build/
+out/
+bin/
+obj/
+*.sln
+*.vcxproj*
+*.vcxproj.filters
+*.vcxproj.user
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake
+CMakeScripts/
+*.ninja
+build.ninja
+compile_commands.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Compiled objects
+*.o
+*.obj
+*.lib
+*.a
+*.dll
+*.so
+*.dylib
+*.exe
+*.exp
+*.ilk
+*.pdb
+*.pch
+*.ipch
+
+# Tests
+*.trx
+*.coverage
+coverage/
+
+# Packaging
+*.zip
+*.tar.gz
+*.tgz
+*.msi
+*.pkg
+*.deb
+*.rpm
+*.snap
+*.flatpak
+*.appimage
+
+# Language bindings (generated)
+bindings/*/build/
+bindings/*/dist/
+bindings/*/*.egg-info/
+bindings/*/target/
+bindings/*/node_modules/
+bindings/*/vendor/
+
+# Documentation build
+docs/_build/
+docs/site/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Sanitizer outputs
+asan_*
+ubsan_*
+msan_*
+
+# Profiling
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+
+# OS specific
+*.user
+*.suo
+*.ncb
+*.sdf
+*.opensdf
