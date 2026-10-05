@@ -15,6 +15,7 @@ env:
 
 permissions:
   contents: write
+  id-token: write  # Required for Trusted Publishing (OIDC)
 
 jobs:
   release:
@@ -110,3 +111,56 @@ jobs:
           files: |
             pkg/*.zip
             pkg/*.sha256
+
+  publish-nuget:
+    name: Publish to NuGet
+    needs: release
+    runs-on: windows-latest
+    permissions:
+      id-token: write  # Required for OIDC trusted publishing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          choco install ninja cmake --no-progress
+
+      - name: Configure CMake (Shared)
+        run: |
+          cmake -B build-shared -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DHX_BUILD_SHARED=ON `
+            -DHX_BUILD_TESTS=OFF `
+            -DHX_BUILD_HEADLESS_DEMO=OFF `
+            -DHX_BACKEND_VULKAN=ON `
+            -DHX_BACKEND_SOFTWARE=ON
+
+      - name: Build Shared Library
+        run: cmake --build build-shared --config Release --parallel
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+        with:
+          nuget-version: '6.x'
+
+      - name: Prepare NuGet Package
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $nuspecDir = "packaging/nuget/HelixRND"
+          $runtimesDir = "$nuspecDir/runtimes/win-x64/native"
+          
+          # Create runtimes directory
+          New-Item -ItemType Directory -Force -Path $runtimesDir | Out-Null
+          
+          # Copy the shared library
+          Copy-Item build-shared/Release/helix.dll $runtimesDir/
+          
+          # Pack the NuGet package
+          dotnet pack $nuspecDir -c Release -o ../nupkg -p:Version=$version
+
+      - name: Publish to NuGet (Trusted Publishing)
+        run: |
+          $nupkg = Get-ChildItem packaging/nuget/nupkg/*.nupkg | Select-Object -First 1
+          dotnet nuget push $nupkg.FullName --source https://api.nuget.org/v3/index.json
