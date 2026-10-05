@@ -337,17 +337,17 @@ Use this to update existing code and bindings.
 
 ## Cross-Language Mapping Updates
 
-| C (Old) | C (New) | C++ | C# | Python | Rust | JS/WASM | Go | Java | Lua |
-|---------|---------|-----|-----|--------|------|---------|----|------|-----|
-| `hx_win_tick()` | `hx_tick()` | `hx::tick()` | `Hx.Tick()` | `hx.tick()` | `hx::tick()` | `helix.tick()` | `hx.Tick()` | `Hx.tick()` | `hx.tick()` |
-| `hx_win_show()` | `hx_show()` | `hx::show()` | `Hx.Show()` | `hx.show()` | `hx::show()` | `helix.show()` | `hx.Show()` | `Hx.show()` | `hx.show()` |
-| `hx_win_alive()` | `hx_get_win_alive()` | `hx::get_win_alive()` | `Hx.GetWinAlive()` | `hx.get_win_alive()` | `hx::get_win_alive()` | `helix.getWinAlive()` | `hx.GetWinAlive()` | `Hx.getWinAlive()` | `hx.get_win_alive()` |
-| `hx_world_add()` | `hx_add_mesh()` | `hx::add_mesh()` | `Hx.AddMesh()` | `hx.add_mesh()` | `hx::add_mesh()` | `helix.addMesh()` | `hx.AddMesh()` | `Hx.addMesh()` | `hx.add_mesh()` |
-| `hx_world_drop()` | *(removed)* | — | — | — | — | — | — | — | — |
-| `hx_cam_look()` | `hx_look()` | `hx::look()` | `Hx.Look()` | `hx.look()` | `hx::look()` | `helix.look()` | `hx.Look()` | `Hx.look()` | `hx.look()` |
-| `hx_cam_persp()` | `hx_set_cam_persp()` | `hx::set_cam_persp()` | `Hx.SetCamPersp()` | `hx.set_cam_persp()` | `hx::set_cam_persp()` | `helix.setCamPersp()` | `hx.SetCamPersp()` | `Hx.setCamPersp()` | `hx.set_cam_persp()` |
-| `hx_mat4_mul()` | `hx_mul_mat4()` | `hx::mul_mat4()` | `Hx.MulMat4()` | `hx.mul_mat4()` | `hx::mul_mat4()` | `helix.mulMat4()` | `hx.MulMat4()` | `Hx.mulMat4()` | `hx.mul_mat4()` |
-| `hx_quat_slerp()` | `hx_slerp_quat()` | `hx::slerp_quat()` | `Hx.SlerpQuat()` | `hx.slerp_quat()` | `hx::slerp_quat()` | `helix.slerpQuat()` | `hx.SlerpQuat()` | `Hx.slerpQuat()` | `hx.slerp_quat()` |
+| C (Old) | C (New) | C++ | C# |
+|---------|---------|-----|-----|
+| `hx_win_tick()` | `hx_tick()` | `hx::tick()` | `Hx.Tick()` |
+| `hx_win_show()` | `hx_show()` | `hx::show()` | `Hx.Show()` |
+| `hx_win_alive()` | `hx_get_win_alive()` | `hx::get_win_alive()` | `Hx.GetWinAlive()` |
+| `hx_world_add()` | `hx_add_mesh()` | `hx::add_mesh()` | `Hx.AddMesh()` |
+| `hx_world_drop()` | *(removed)* | — | — |
+| `hx_cam_look()` | `hx_look()` | `hx::look()` | `Hx.Look()` |
+| `hx_cam_persp()` | `hx_set_cam_persp()` | `hx::set_cam_persp()` | `Hx.SetCamPersp()` |
+| `hx_mat4_mul()` | `hx_mul_mat4()` | `hx::mul_mat4()` | `Hx.MulMat4()` |
+| `hx_quat_slerp()` | `hx_slerp_quat()` | `hx::slerp_quat()` | `Hx.SlerpQuat()` |
 
 ---
 

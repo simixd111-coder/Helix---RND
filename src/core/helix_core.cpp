@@ -15,7 +15,12 @@ static HxBackend g_backend = HX_BACKEND_UNKNOWN;
 static char g_last_error[1024] = {0};
 
 // Thread-local error storage (simplified for Phase 1 — single thread)
-static thread_local char tls_last_error[1024] = {0};
+// Must have external linkage for shared library builds
+#if defined(_MSC_VER)
+__declspec(thread) char tls_last_error[1024] = {0};
+#else
+__thread char tls_last_error[1024] = {0};
+#endif
 
 // -----------------------------------------------------------------------------
 // Error Handling

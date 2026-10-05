@@ -24,13 +24,7 @@
 |----------|-------|---------|
 | C | `snake_case` | `hx_make_win()` |
 | C++ | `snake_case` | `hx::make_win()` |
-| Rust | `snake_case` | `hx::make_win()` |
-| Python | `snake_case` | `hx.make_win()` |
-| Lua | `snake_case` | `hx.make_win()` |
 | C# | `PascalCase` | `Hx.MakeWin()` |
-| Go | `PascalCase` | `hx.MakeWin()` |
-| Java | `camelCase` | `Hx.makeWin()` |
-| JavaScript/WASM | `camelCase` | `helix.makeWin()` |
 
 ---
 
@@ -552,16 +546,16 @@
 
 ## Cross-Language Mapping (Updated)
 
-| C | C++ | C# | Python | Rust | JS/WASM | Go | Java | Lua |
-|---|-----|----|--------|------|---------|----|------|-----|
-| `hx_boot()` | `hx::boot()` | `Hx.Boot()` | `hx.boot()` | `hx::boot()` | `helix.boot()` | `hx.Boot()` | `Hx.boot()` | `hx.boot()` |
-| `hx_make_win()` | `hx::make_win()` | `Hx.MakeWin()` | `hx.make_win()` | `hx::make_win()` | `helix.makeWin()` | `hx.MakeWin()` | `Hx.makeWin()` | `hx.make_win()` |
-| `hx_tick()` | `hx::tick()` | `Hx.Tick()` | `hx.tick()` | `hx::tick()` | `helix.tick()` | `hx.Tick()` | `Hx.tick()` | `hx.tick()` |
-| `hx_draw_world()` | `hx::draw_world()` | `Hx.DrawWorld()` | `hx.draw_world()` | `hx::draw_world()` | `helix.drawWorld()` | `hx.DrawWorld()` | `Hx.drawWorld()` | `hx.draw_world()` |
-| `hx_spin_mesh()` | `hx::spin_mesh()` | `Hx.SpinMesh()` | `hx.spin_mesh()` | `hx::spin_mesh()` | `helix.spinMesh()` | `hx.SpinMesh()` | `Hx.spinMesh()` | `hx.spin_mesh()` |
-| `hx_on()` | `hx::on()` | `Hx.On()` | `hx.on()` | `hx::on()` | `helix.on()` | `hx.On()` | `Hx.on()` | `hx.on()` |
-| `HxVec3` | `hx::Vec3` | `HxVec3` | `hx.Vec3` | `hx::Vec3` | `helix.Vec3` | `hx.Vec3` | `HxVec3` | `hx.vec3` |
-| `HX_OK` | `hx::OK` | `HxResult.OK` | `hx.OK` | `hx::OK` | `helix.OK` | `hx.OK` | `HxResult.OK` | `hx.OK` |
+| C | C++ | C# |
+|---|-----|----|
+| `hx_boot()` | `hx::boot()` | `Hx.Boot()` |
+| `hx_make_win()` | `hx::make_win()` | `Hx.MakeWin()` |
+| `hx_tick()` | `hx::tick()` | `Hx.Tick()` |
+| `hx_draw_world()` | `hx::draw_world()` | `Hx.DrawWorld()` |
+| `hx_spin_mesh()` | `hx::spin_mesh()` | `Hx.SpinMesh()` |
+| `hx_on()` | `hx::on()` | `Hx.On()` |
+| `HxVec3` | `hx::Vec3` | `HxVec3` |
+| `HX_OK` | `hx::OK` | `HxResult.OK` |
 
 ---
 

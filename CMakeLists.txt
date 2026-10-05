@@ -82,16 +82,27 @@ function(hx_apply_compile_options target)
         >
     )
 
-    # Static runtime
-    if(HX_STATIC_RUNTIME)
-        target_compile_options(${target} PRIVATE
-            $<$<CXX_COMPILER_ID:MSVC>:/MT>
-            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-static-libstdc++ -static-libgcc>
-        )
-        target_link_options(${target} PRIVATE
-            $<$<CXX_COMPILER_ID:MSVC>:/NODEFAULTLIB:libcmt.lib>
-            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-static-libstdc++ -static-libgcc -pthread>
-        )
+    # Runtime library selection
+    # For shared libraries on Windows, we MUST use dynamic runtime (/MD)
+    # because static runtime (/MT) causes linking errors with CRT symbols.
+    # For static libraries, we can use static runtime (/MT) if HX_STATIC_RUNTIME is ON.
+    if(WIN32)
+        get_target_property(target_type ${target} TYPE)
+        if(target_type STREQUAL "SHARED_LIBRARY")
+            # Shared library: use dynamic runtime
+            target_compile_options(${target} PRIVATE /MD)
+        elseif(HX_STATIC_RUNTIME)
+            # Static library with static runtime
+            target_compile_options(${target} PRIVATE /MT)
+            target_link_options(${target} PRIVATE /NODEFAULTLIB:libcmt.lib)
+        else()
+            # Static library with dynamic runtime
+            target_compile_options(${target} PRIVATE /MD)
+        endif()
+    elseif(HX_STATIC_RUNTIME AND NOT WIN32)
+        # Non-Windows static runtime
+        target_compile_options(${target} PRIVATE -static-libstdc++ -static-libgcc)
+        target_link_options(${target} PRIVATE -static-libstdc++ -static-libgcc -pthread)
     endif()
 
     # Sanitizers
@@ -141,11 +152,10 @@ function(hx_link_platform_libs target)
 endfunction()
 
 # -----------------------------------------------------------------------------
-# Helix Core Library
+# Source Lists (used by both the shared build and the static components)
 # -----------------------------------------------------------------------------
-add_library(helix-core STATIC
+set(HELIX_CORE_SOURCES
     src/core/helix_core.cpp
-    src/core/error.cpp
     src/core/handle.cpp
     src/core/resource.cpp
     src/core/camera.cpp
@@ -154,20 +164,119 @@ add_library(helix-core STATIC
     src/core/sprite.cpp
     src/math/math.cpp
 )
-
 if(HX_BACKEND_VULKAN)
-    target_sources(helix-core PRIVATE
+    list(APPEND HELIX_CORE_SOURCES
         src/core/gpu_vulkan.cpp
         src/thirdparty/volk/volk.c
     )
+else()
+    list(APPEND HELIX_CORE_SOURCES src/core/gpu_vulkan_stub.cpp)
+endif()
+
+set(HELIX_PLATFORM_SOURCES
+    src/platform/platform.cpp
+    src/platform/window.cpp
+    src/platform/input.cpp
+)
+if(WIN32)
+    list(APPEND HELIX_PLATFORM_SOURCES
+        src/platform/win32/win32_window.cpp
+        src/platform/win32/win32_input.cpp
+    )
+elseif(APPLE)
+    list(APPEND HELIX_PLATFORM_SOURCES
+        src/platform/cocoa/cocoa_window.mm
+        src/platform/cocoa/cocoa_input.mm
+    )
+elseif(UNIX AND NOT ANDROID)
+    list(APPEND HELIX_PLATFORM_SOURCES
+        src/platform/x11/x11_window.cpp
+        src/platform/x11/x11_input.cpp
+        src/platform/wayland/wayland_window.cpp
+        src/platform/wayland/wayland_input.cpp
+    )
+elseif(EMSCRIPTEN)
+    list(APPEND HELIX_PLATFORM_SOURCES
+        src/platform/wasm/wasm_window.cpp
+        src/platform/wasm/wasm_input.cpp
+    )
+endif()
+list(APPEND HELIX_PLATFORM_SOURCES
+    src/platform/headless/headless_window.cpp
+    src/platform/headless/headless_input.cpp
+)
+
+set(HELIX_RENDER_SOFTWARE_SOURCES
+    src/render/software/soft_renderer.cpp
+    src/render/software/soft_rasterizer.cpp
+    src/render/software/soft_shader.cpp
+    src/render/software/soft_texture.cpp
+)
+
+# -----------------------------------------------------------------------------
+# Helix Library
+#   HX_BUILD_SHARED=ON  -> single shared library (helix.dll / libhelix.so)
+#   HX_BUILD_SHARED=OFF -> static components + interface target (default)
+# -----------------------------------------------------------------------------
+if(HX_BUILD_SHARED)
+
+    add_library(helix SHARED
+        ${HELIX_CORE_SOURCES}
+        ${HELIX_PLATFORM_SOURCES}
+    )
+    if(HX_BACKEND_SOFTWARE)
+        target_sources(helix PRIVATE ${HELIX_RENDER_SOFTWARE_SOURCES})
+    endif()
+
+    target_include_directories(helix
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    target_include_directories(helix SYSTEM PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty/stb
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty
+    )
+    if(HX_BACKEND_VULKAN)
+        target_include_directories(helix SYSTEM PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty/vulkan/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty/volk
+        )
+        target_compile_definitions(helix PRIVATE HX_HAS_VULKAN=1)
+        target_link_libraries(helix PRIVATE ${CMAKE_DL_LIBS})
+    endif()
+    target_compile_definitions(helix PRIVATE
+        HX_BUILD_DLL=1
+        HX_CORE_EXPORTS
+    )
+    hx_apply_compile_options(helix)
+    hx_link_platform_libs(helix)
+    set_target_properties(helix PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+    )
+    if(WIN32)
+        # Native Windows naming: helix.dll (not libhelix.dll), so that
+        # DllImport("helix") and standard Windows importers resolve it.
+        set_target_properties(helix PROPERTIES PREFIX "")
+    endif()
+
+else()
+
+# -----------------------------------------------------------------------------
+# Helix Core Library (static component)
+# -----------------------------------------------------------------------------
+add_library(helix-core STATIC ${HELIX_CORE_SOURCES})
+
+if(HX_BACKEND_VULKAN)
     target_include_directories(helix-core SYSTEM PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty/vulkan/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty/volk
     )
     target_compile_definitions(helix-core PRIVATE HX_HAS_VULKAN=1)
     target_link_libraries(helix-core PRIVATE ${CMAKE_DL_LIBS})
-else()
-    target_sources(helix-core PRIVATE src/core/gpu_vulkan_stub.cpp)
 endif()
 
 target_include_directories(helix-core
@@ -191,44 +300,9 @@ target_compile_definitions(helix-core PRIVATE
 hx_apply_compile_options(helix-core)
 
 # -----------------------------------------------------------------------------
-# Platform Abstraction Layer
+# Platform Abstraction Layer (static component)
 # -----------------------------------------------------------------------------
-add_library(helix-platform STATIC
-    src/platform/platform.cpp
-    src/platform/window.cpp
-    src/platform/input.cpp
-)
-
-# Platform-specific sources
-if(WIN32)
-    target_sources(helix-platform PRIVATE
-        src/platform/win32/win32_window.cpp
-        src/platform/win32/win32_input.cpp
-    )
-elseif(APPLE)
-    target_sources(helix-platform PRIVATE
-        src/platform/cocoa/cocoa_window.mm
-        src/platform/cocoa/cocoa_input.mm
-    )
-elseif(UNIX AND NOT ANDROID)
-    target_sources(helix-platform PRIVATE
-        src/platform/x11/x11_window.cpp
-        src/platform/x11/x11_input.cpp
-        src/platform/wayland/wayland_window.cpp
-        src/platform/wayland/wayland_input.cpp
-    )
-elseif(EMSCRIPTEN)
-    target_sources(helix-platform PRIVATE
-        src/platform/wasm/wasm_window.cpp
-        src/platform/wasm/wasm_input.cpp
-    )
-endif()
-
-# Headless (always available)
-target_sources(helix-platform PRIVATE
-    src/platform/headless/headless_window.cpp
-    src/platform/headless/headless_input.cpp
-)
+add_library(helix-platform STATIC ${HELIX_PLATFORM_SOURCES})
 
 target_include_directories(helix-platform
     PUBLIC
@@ -245,12 +319,7 @@ hx_link_platform_libs(helix-platform)
 # Render Backends (Phase 1: Software only)
 # -----------------------------------------------------------------------------
 if(HX_BACKEND_SOFTWARE)
-    add_library(helix-render-software STATIC
-        src/render/software/soft_renderer.cpp
-        src/render/software/soft_rasterizer.cpp
-        src/render/software/soft_shader.cpp
-        src/render/software/soft_texture.cpp
-    )
+    add_library(helix-render-software STATIC ${HELIX_RENDER_SOFTWARE_SOURCES})
 
     target_include_directories(helix-render-software
         PUBLIC
@@ -290,6 +359,8 @@ set_target_properties(helix PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
 )
+
+endif() # HX_BUILD_SHARED
 
 # -----------------------------------------------------------------------------
 # Headless Demo (Phase 1 deliverable)
@@ -340,22 +411,32 @@ if(HX_INSTALL_HEADERS)
 endif()
 
 if(HX_INSTALL_LIB)
-    install(TARGETS helix helix-core helix-platform
-        EXPORT helix-targets
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        COMPONENT library
-    )
-
-    if(HX_BACKEND_SOFTWARE)
-        install(TARGETS helix-render-software
+    if(HX_BUILD_SHARED)
+        install(TARGETS helix
             EXPORT helix-targets
             LIBRARY DESTINATION lib
             ARCHIVE DESTINATION lib
             RUNTIME DESTINATION bin
             COMPONENT library
         )
+    else()
+        install(TARGETS helix helix-core helix-platform
+            EXPORT helix-targets
+            LIBRARY DESTINATION lib
+            ARCHIVE DESTINATION lib
+            RUNTIME DESTINATION bin
+            COMPONENT library
+        )
+
+        if(HX_BACKEND_SOFTWARE)
+            install(TARGETS helix-render-software
+                EXPORT helix-targets
+                LIBRARY DESTINATION lib
+                ARCHIVE DESTINATION lib
+                RUNTIME DESTINATION bin
+                COMPONENT library
+            )
+        endif()
     endif()
 
     install(EXPORT helix-targets

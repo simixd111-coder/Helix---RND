@@ -1,0 +1,112 @@
+# Helix RND — Release Workflow
+# Builds the library on Windows/Linux/macOS, packages headers + libs,
+# computes SHA256 and creates a GitHub Release on tags (v*).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CMAKE_GENERATOR: Ninja
+  BUILD_TYPE: Release
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            lib_files: |
+              build/helix-core.lib
+              build/helix-platform.lib
+              build/helix-render-software.lib
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            lib_files: |
+              build/libhelix-core.a
+              build/libhelix-platform.a
+              build/libhelix-render-software.a
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+            lib_files: |
+              build/libhelix-core.a
+              build/libhelix-platform.a
+              build/libhelix-render-software.a
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libwayland-dev libxkbcommon-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja cmake
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G "${CMAKE_GENERATOR}" \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+            -DHX_STATIC_RUNTIME=ON \
+            -DHX_BUILD_TESTS=ON \
+            -DHX_BUILD_HEADLESS_DEMO=ON \
+            -DHX_BACKEND_VULKAN=ON \
+            -DHX_BACKEND_SOFTWARE=ON
+
+      - name: Build
+        run: cmake --build build --config ${BUILD_TYPE} --parallel
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure --parallel
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $zipName = "helix-rnd-$version-windows-x64"
+          New-Item -ItemType Directory -Force -Path "pkg/$zipName/include" | Out-Null
+          New-Item -ItemType Directory -Force -Path "pkg/$zipName/lib" | Out-Null
+          Copy-Item include/helix.h "pkg/$zipName/include/"
+          Copy-Item build/helix-core.lib build/helix-platform.lib build/helix-render-software.lib "pkg/$zipName/lib/"
+          Copy-Item LICENSE "pkg/$zipName/"
+          Compress-Archive -Path "pkg/$zipName" -DestinationPath "pkg/$zipName.zip"
+          $hash = (Get-FileHash "pkg/$zipName.zip" -Algorithm SHA256).Hash
+          "$hash  $zipName.zip" | Out-File "pkg/$zipName.zip.sha256" -Encoding ascii
+          Write-Host "SHA256: $hash"
+
+      - name: Package (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          zipName="helix-rnd-$version-${{ matrix.platform }}-${{ matrix.arch }}"
+          mkdir -p "pkg/$zipName/include" "pkg/$zipName/lib"
+          cp include/helix.h "pkg/$zipName/include/"
+          cp build/libhelix-core.a build/libhelix-platform.a build/libhelix-render-software.a "pkg/$zipName/lib/"
+          cp LICENSE "pkg/$zipName/"
+          (cd pkg && zip -r "$zipName.zip" "$zipName")
+          sha256sum "pkg/$zipName.zip" > "pkg/$zipName.zip.sha256"
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pkg/*.zip
+            pkg/*.sha256

@@ -17,7 +17,7 @@ What have you already attempted?
 
 ## Environment
 - OS: [e.g., Windows 11, Ubuntu 22.04, macOS 14]
-- Language: [C, C++, Python, Rust, etc.]
+- Language: [C, C++, C#, etc.]
 - Helix Version: [e.g., 0.1.0, commit hash]
 
 ## Additional Information

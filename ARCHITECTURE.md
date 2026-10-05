@@ -3,7 +3,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              APPLICATION                                     │
-│  (C, C++, C#, Python, Rust, JS/WASM, Go, Java, Lua via bindings)           │
+│  (C, C++, C# via native C API)                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼
@@ -42,7 +42,7 @@
 │  • Vulkan/OpenGL loaders generated/embedded                                 │
 │  • Shaders precompiled to SPIR-V / GLSL, embedded as byte arrays            │
 │  • C/C++ runtime linked statically (/MT, -static-libstdc++)                 │
-│  • Each language package bundles native binary (pip, cargo, npm, nuget...)  │
+│  • Each package bundles the native binary (choco, nuget)                    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -77,7 +77,7 @@ helix-rnd/
 │       ├── metal/
 │       └── software/
 ├── tests/                   # Unit + image comparison tests
-├── bindings/                # Language bindings (C++, C#, Python, Rust, JS, Go, Java, Lua)
+├── bindings/                # Language bindings (C++, C#)
 ├── scripts/                 # Build, package, install scripts
 ├── docs/
 │   ├── VOCABULARY.md        # Token dictionary
