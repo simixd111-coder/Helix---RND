@@ -74,6 +74,8 @@ jobs:
             -DHX_BUILD_TESTS=ON \
             -DHX_BUILD_HEADLESS_DEMO=ON \
             -DHX_BACKEND_VULKAN=OFF \
+            -DHX_BACKEND_OPENGL=OFF \
+            -DHX_BACKEND_METAL=OFF \
             -DHX_BACKEND_SOFTWARE=ON
 
       - name: Build
