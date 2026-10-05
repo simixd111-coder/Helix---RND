@@ -61,6 +61,10 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install ninja cmake
 
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja --no-progress
+
       - name: Configure CMake
         run: |
           cmake -B build -G "${CMAKE_GENERATOR}" \
