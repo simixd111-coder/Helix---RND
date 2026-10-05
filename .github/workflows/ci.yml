@@ -85,7 +85,9 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}-bin
           path: |
-            build/helix.lib
+            build/helix-core.lib
+            build/helix-platform.lib
+            build/helix-render-software.lib
             build/helix_demo_headless.exe
 
       - name: Upload Binaries (Linux)
@@ -94,7 +96,9 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}-bin
           path: |
-            build/libhelix.a
+            build/libhelix-core.a
+            build/libhelix-platform.a
+            build/libhelix-render-software.a
             build/helix_demo_headless
 
       - name: Upload Binaries (macOS)
@@ -103,7 +107,9 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}-bin
           path: |
-            build/libhelix.a
+            build/libhelix-core.a
+            build/libhelix-platform.a
+            build/libhelix-render-software.a
             build/helix_demo_headless
 
   # Sanitizer builds (Linux only)

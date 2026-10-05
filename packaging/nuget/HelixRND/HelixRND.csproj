@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <PackageId>HelixRND</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Gimenez Simón</Authors>
+    <Description>P/Invoke bindings for Helix RND — a modular C API for building custom game engines, with C++ internals and a software fallback.</Description>
+    <PackageProjectUrl>https://github.com/simixd111-coder/Helix---RND</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/simixd111-coder/Helix---RND</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>game-engine;graphics;vulkan;gltf;sprite;2d;3d;engine</PackageTags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Helix</RootNamespace>
+    <AssemblyName>HelixRND</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Native library resolution:
+    The NuGet package ships helix.dll under runtimes/win-x64/native/.
+    The .targets file copies it next to the app output at build time,
+    so DllImport("helix") resolves at runtime.
+  -->
+
+  <ItemGroup>
+    <None Include="runtimes\**\*" Pack="true" PackagePath="runtimes" Visible="false" />
+  </ItemGroup>
+
+</Project>

@@ -12,30 +12,11 @@
 Helix RND ("Helix") is a C API and C++ library intended as a modular foundation for custom game engines and games.
 
 ```bash
-# Python (planned)
-pip install helix-rnd
+# C / C++ — Windows (planned)
+choco install helix-rnd
 
 # C# (planned)
 dotnet add package HelixRND
-
-# Rust (planned)
-cargo add helix-rnd
-
-# Node.js (planned)
-npm install helix-rnd
-
-# Go (planned)
-go get github.com/helix-rnd/helix/go
-
-# Java/Maven (planned)
-<dependency>
-  <groupId>dev.helix</groupId>
-  <artifactId>helix-rnd</artifactId>
-  <version>0.1.0</version>
-</dependency>
-
-# Lua (planned)
-luarocks install helix-rnd
 ```
 
 The software build needs no graphics SDK. Vulkan headers and Volk are vendored; Vulkan mode loads the system driver dynamically. No GLFW or SDL is required.
@@ -56,7 +37,7 @@ The software build needs no graphics SDK. Vulkan headers and Volk are vendored; 
 - Vulkan draw pipelines, swapchain presentation and GPU-backed `hx_draw_*`; drawing remains software/headless
 - glTF node transforms, materials, skins and skeletal animation
 - Sprite draw/batching, atlas packing, text, particles and tilemaps
-- Audio, ECS, editor, native-window event integration on all platforms, OpenGL, Metal, WASM and bindings
+- Audio, ECS, editor, native-window event integration on all platforms, OpenGL, Metal and C# bindings
 
 ### 📋 Planned (not started)
 See [Roadmap](#roadmap) below.
@@ -84,39 +65,6 @@ int main(void) {
     hx_get_memory_stats(&stats);
     return stats.live_resources == 0 && stats.cpu_bytes == 0 ? 0 : 4;
 }
-```
-
----
-
-## Quick Start (Python) — Planned API
-
-```python
-import helix as hx
-
-cfg = hx.Cfg(gpu=hx.GPU.SOFT)
-hx.boot(cfg)
-
-win = hx.make_win(1280, 720, "Cube")
-world = hx.make_world()
-skin = hx.make_skin(hx.ORANGE)
-cube = hx.make_cube(skin)
-hx.add_mesh(world, cube, skin, None)
-
-sun = hx.make_lamp(hx.LAMP.SUN, hx.WHITE, 1.0)
-hx.set_lamp_dir(sun, hx.Vec3(0, -1, -1))
-hx.add_mesh(world, sun, None, None)
-
-cam = hx.make_cam3d()
-hx.look(cam, at=hx.Vec3(0,0,0), from=hx.Vec3(3,2,5), up=hx.Vec3(0,1,0))
-hx.set_cam_persp(cam, fov=60, aspect=1280/720, near=0.1, far=100)
-
-while hx.get_win_alive(win):
-    hx.tick(win)
-    hx.spin_mesh(cube, 0, 1.0 * hx.get_win_dt(win), 0)
-    hx.draw_world(win, world, cam)
-    hx.show(win)
-
-hx.quit()
 ```
 
 ---
@@ -232,7 +180,7 @@ helix-rnd/
 │   └── thirdparty/          # stb_image, cgltf, Volk, Vulkan-Headers
 ├── tests/                   # Unit + image comparison tests
 ├── demos/                   # Demo applications
-├── bindings/                # Language bindings (planned)
+├── bindings/                # C# bindings (planned)
 ├── scripts/                 # Build, package, install scripts (planned)
 ├── docs/
 │   ├── VOCABULARY.md        # Token dictionary
@@ -259,8 +207,8 @@ helix-rnd/
 | 3 | Vulkan graphics pipelines, swapchain and GPU-backed drawing | 📋 In progress |
 | 4 | Blender materials, node transforms and skeletal animation | 📋 Planned |
 | 5 | Audio, ECS, project templates and editor tools | 📋 Planned |
-| 6 | OpenGL, Metal, WebGPU and language bindings | 📋 Planned |
-| 9 | Bindings with embedded binaries (pip, cargo, npm, nuget, ...) | 📋 Planned |
+| 6 | OpenGL, Metal, WebGPU and C# bindings | 📋 Planned |
+| 9 | Packages with embedded binaries (choco, nuget) | 📋 Planned |
 | 10 | CLI (`helix doctor/new/run/demo/update`), packaging, publishing | 📋 Planned |
 
 ---

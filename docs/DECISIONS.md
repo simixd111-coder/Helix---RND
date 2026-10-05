@@ -22,7 +22,7 @@ Each entry follows:
 
 ### HX-20261003-001: Pure C API with Opaque Handles
 **Status:** Accepted
-**Context:** Need stable ABI for multi-language bindings (C, C++, C#, Python, Rust, JS, Go, Java, Lua).
+**Context:** Need stable ABI for bindings (C, C++, C#).
 **Decision:** Public API is pure C99 (`helix.h`). All objects are opaque handles (`typedef struct HxWin HxWin;`). Functions use `hx_` prefix, types use `Hx` prefix, constants use `HX_` prefix.
 **Consequences:**
 - No C++ in public headers — enables direct FFI from any language
@@ -32,7 +32,7 @@ Each entry follows:
 
 ### HX-20261003-002: Static Linking & Vendoring Only
 **Status:** Accepted
-**Context:** User must `pip install helix-rnd` / `cargo add helix` / `dotnet add package Helix` and have it work without installing Vulkan SDK, GLFW, SDL, Visual C++ Redistributable, etc.
+**Context:** User must `choco install helix-rnd` / `dotnet add package HelixRND` and have it work without installing Vulkan SDK, GLFW, SDL, Visual C++ Redistributable, etc.
 **Decision:**
 - All third-party code vendored in `src/thirdparty/`
 - C/C++ runtime linked statically (`/MT`, `-static-libstdc++ -static-libgcc`)
@@ -240,9 +240,8 @@ Each entry follows:
 **Status:** Accepted
 **Context:** Bindings need consistent naming per language idioms.
 **Decision:** Documented in VOCABULARY.md:
-- C/C++/Rust/Python/Lua: `snake_case`
-- C#/Go: `PascalCase`
-- Java/JS: `camelCase`
+- C/C++: `snake_case`
+- C#: `PascalCase`
 **Consequences:**
 - Binding generators can follow this automatically
 - Cross-language consistency
