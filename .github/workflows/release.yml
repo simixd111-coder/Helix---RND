@@ -66,6 +66,7 @@ jobs:
         run: choco install ninja --no-progress
 
       - name: Configure CMake
+        shell: bash
         run: |
           cmake -B build -G "${CMAKE_GENERATOR}" \
             -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
@@ -76,9 +77,11 @@ jobs:
             -DHX_BACKEND_SOFTWARE=ON
 
       - name: Build
+        shell: bash
         run: cmake --build build --config ${BUILD_TYPE} --parallel
 
       - name: Run Tests
+        shell: bash
         run: ctest --test-dir build --output-on-failure --parallel
 
       - name: Package (Windows)
