@@ -74,9 +74,8 @@ jobs:
               text = path.read_text(errors="replace")
               for block in re.split(r"(?=^\d+/\d+ Testing:)", text, flags=re.M):
                   name = re.search(r"^\d+/\d+ Test: ([^\r\n]+)", block, flags=re.M)
-                  output = re.search(r"(?ms)^Output:\r?\n-+\r?\n(.*?)\r?\n<end of output>", block)
                   if name and re.search(r"^Test Failed\.", block, flags=re.M):
-                      detail = re.sub(r"\s+", " ", output.group(1)).strip() if output else "no test output"
+                      detail = re.sub(r"\s+", " ", block).strip()
                       message = f"{name.group(1)}: {detail[-1200:]}"
                       for source, replacement in (("%", "%25"), ("\r", "%0D"), ("\n", "%0A"), (":", "%3A"), (",", "%2C")):
                           message = message.replace(source, replacement)
