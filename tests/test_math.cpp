@@ -89,6 +89,23 @@ int test_mat4() {
     ASSERT_EQ(c.m[3][1], 7);
     ASSERT_EQ(c.m[3][2], 9);
 
+    HxVec3 translation = {3, 0, 0};
+    HxQuat rotation = {0, 0, 0.7071067f, 0.7071067f};
+    HxMat4 translate_matrix, rotate_matrix;
+    hx_make_mat4_translate(&translation, &translate_matrix);
+    hx_make_mat4_rotate(&rotation, &rotate_matrix);
+    hx_mul_mat4(&translate_matrix, &rotate_matrix, &c);
+    ASSERT_EQ(c.m[3][0], 3);
+    ASSERT_EQ(c.m[3][1], 0);
+    ASSERT_EQ(c.m[0][1], 1);
+    ASSERT_EQ(c.m[1][0], -1);
+
+    HxMat4 aliased = translate_matrix;
+    hx_mul_mat4(&aliased, &rotate_matrix, &aliased);
+    for (int col = 0; col < 4; ++col) for (int row = 0; row < 4; ++row) {
+        ASSERT_EQ(aliased.m[col][row], c.m[col][row]);
+    }
+
     HxVec3 t = {1, 2, 3};
     hx_make_mat4_translate(&t, &m);
     ASSERT_EQ(m.m[3][0], 1);

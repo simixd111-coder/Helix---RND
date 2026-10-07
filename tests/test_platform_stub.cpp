@@ -27,6 +27,15 @@ int main() {
 
     assert(hx_get_win_dpi_scale(win) == 1.0f);
     assert(hx_get_win_dt(win) >= 0.0);
+    assert(hx_get_win_fps_limit(win) == 0);
+
+    // The headless window uses the same per-window frame limiter.
+    hx_set_win_fps_limit(win, 50);
+    assert(hx_get_win_fps_limit(win) == 50);
+    assert(hx_tick(win));
+    assert(hx_get_win_dt(win) >= 0.015);
+    hx_set_win_fps_limit(win, 0);
+    assert(hx_get_win_fps_limit(win) == 0);
 
     // Test tick
     bool alive = hx_tick(win);

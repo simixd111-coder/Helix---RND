@@ -1,11 +1,11 @@
 /*
  * helix.h — Helix RND Public C API (Stable ABI)
- * Version: 2.0.0
+ * Version: 2.5.0
  * License: MIT
  * SPDX-License-Identifier: MIT
  *
  * Design principles:
- * - Pure C99 compatible (works from C, C++, and all FFI)
+ * - C11 compatible (works from C, C++, and all FFI)
  * - Opaque handles (forward-declared structs)
  * - Explicit error codes via HxResult + hx_last_error()
  * - No heap allocation in hot paths; caller owns buffers
@@ -26,9 +26,9 @@ extern "C" {
  * ============================================================================ */
 
 #define HX_VERSION_MAJOR 2
-#define HX_VERSION_MINOR 0
+#define HX_VERSION_MINOR 5
 #define HX_VERSION_PATCH 0
-#define HX_VERSION_STRING "2.0.0"
+#define HX_VERSION_STRING "2.5.0"
 
 /* Platform */
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -294,11 +294,14 @@ HX_API void HX_CALL hx_get_win_size(HxWin win, int* w, int* h);  /* Framebuffer 
 HX_API float HX_CALL hx_get_win_dpi_scale(HxWin win);      /* HiDPI scale factor (1.0, 1.5, 2.0...) */
 HX_API double HX_CALL hx_get_win_dt(HxWin win);            /* Delta time since last tick (seconds) */
 HX_API double HX_CALL hx_get_win_time(HxWin win);          /* Total time since boot (seconds) */
+HX_API uint32_t HX_CALL hx_get_win_fps_limit(HxWin win);   /* 0 = uncapped */
 
 /* Window manipulation */
 HX_API void HX_CALL hx_set_win_title(HxWin win, const char* title);
 HX_API void HX_CALL hx_set_win_size(HxWin win, int width, int height);
 HX_API void HX_CALL hx_set_win_vsync(HxWin win, bool enabled);
+/* Limits the rate of hx_tick; 0 disables the limit. Native VSync takes precedence. */
+HX_API void HX_CALL hx_set_win_fps_limit(HxWin win, uint32_t max_fps);
 HX_API void HX_CALL hx_set_win_fullscreen(HxWin win, bool fullscreen);
 
 /* Headless windows can be captured to PNG; visible-window capture is unsupported. */

@@ -22,6 +22,10 @@ El test `helix_headless_triangle` ejecuta el demo y genera `triangle.png`; `test
 
 La API pública está en `include/helix.h`. El demo mínimo de render headless está en `demos/headless_triangle/main.cpp`; úsalo como ejemplo de inicialización con `HX_GPU_SOFT` y apagado del motor. Para integrar la API C# disponible, consulta `packaging/nuget/HelixRND/README.md`. No hay binding Python todavía. Linux usa X11; Wayland no está incluido, y Cocoa/WASM quedan limitados a ventanas headless hasta implementar sus adaptadores nativos.
 
+El loop de ventana llama a `hx_tick`, actualiza/renderiza y luego llama a `hx_show`. `hx_get_win_dt` devuelve el tiempo transcurrido entre ticks. Se puede limitar cada ventana con `hx_set_win_fps_limit(win, 60)`; `0` significa sin límite. El límite se aplica dentro de `hx_tick`, también en headless; en ventanas nativas, VSync tiene prioridad.
+
+Las matrices `HxMat4` usan almacenamiento column-major y vectores columna. `hx_mul_mat4(&a, &b, &out)` calcula `a × b`; `hx_make_mat4_trs` compone traslación, rotación y escala en ese orden.
+
 ## Desarrollo
 
 - Convenciones: `.clang-format` (LLVM, 4 espacios, llaves Allman, 120 columnas).

@@ -1,105 +1,44 @@
-# Helix RND — Architecture Diagram (Phase 1)
+# Helix RND Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              APPLICATION                                     │
-│  (C, C++, C# via native C API)                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           HELIX C API (helix.h)                              │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │  Core       │ │  Window     │ │  Render     │ │  Math       │            │
-│  │  boot/quit  │ │  make_win   │ │  make_*     │ │  vec/mat/   │            │
-│  │  hx_last_   │ │  win_*      │ │  draw       │ │  quat       │            │
-│  │  error()    │ │             │ │             │ │             │            │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘            │
-│         Opaque handles (HxWin, HxWorld, HxMesh, HxSkin, HxCam, ...)         │
-│         Result codes: HxResult (HX_OK, HX_ERR_*)                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-┌─────────────────────────┐ ┌─────────────────────┐ ┌─────────────────────┐
-│      PLATFORM LAYER     │ │    RENDER BACKENDS  │ │     MATH LIB        │
-│  (no external deps)     │ │  (dynamic load)     │ │  (header-only)      │
-├─────────────────────────┤ ├─────────────────────┤ ├─────────────────────┤
-│  Win32 (Windows)        │ │  Vulkan             │ │  vec2/3/4           │
-│  X11 + Wayland dlopen   │ │  OpenGL / Metal     │ │  mat3/4             │
-│  Cocoa (macOS)          │ │  Software (CPU)     │ │  quat               │
-│  Canvas (WASM)          │ │                     │ │  transform helpers  │
-│  Headless (offscreen)   │ │  Shaders embedded   │ │                     │
-│  Foreign window (HWND,  │ │  SPIR-V / GLSL      │ │  SIMD (optional)    │
-│  NSView, wl_surface)    │ │                     │ │                     │
-└─────────────────────────┘ └─────────────────────┘ └─────────────────────┘
-                    │                 │                 │
-                    └─────────────────┼─────────────────┘
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         STATIC LINKING / VENDORING                           │
-│  • No Vulkan SDK, GLFW, SDL, GLEW, glad required                            │
-│  • Vulkan/OpenGL loaders generated/embedded                                 │
-│  • Shaders precompiled to SPIR-V / GLSL, embedded as byte arrays            │
-│  • C/C++ runtime linked statically (/MT, -static-libstdc++)                 │
-│  • Each package bundles the native binary (choco, nuget)                    │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+## Current scope
 
-## Backend Selection (Auto-fallback)
+Helix RND exposes a C11 API in include/helix.h and implements it in C++20. The software renderer supports headless solid and textured triangles, RGBA8 atlases, and PNG capture. Vulkan support is optional and incomplete. Visible-window drawing, PBR, text, skeletal animation, and post-processing are not implemented.
 
-```
-HX_GPU_AUTO (default) → Vulkan → OpenGL/Metal → Software
-HX_GPU_VK             → Vulkan only (fail if unavailable)
-HX_GPU_GL             → OpenGL/Metal only
-HX_GPU_SOFT           → Software rasterizer only
-```
+Windows and Linux/X11 are the native platform targets. Headless windows work without a native window system. Wayland, WASM, and macOS are outside the current support scope.
 
-## Repository Layout (Phase 1)
+## Layers
 
-```
-helix-rnd/
-├── include/
-│   └── helix.h              # Public C API (stable ABI)
-├── src/
-│   ├── core/                # Core engine (boot, error, handles)
-│   ├── math/                # Header-only math library
-│   ├── platform/            # Platform abstraction (window, input)
-│   │   ├── win32/
-│   │   ├── x11/
-│   │   ├── wayland/
-│   │   ├── cocoa/
-│   │   ├── wasm/
-│   │   └── headless/
-│   └── render/              # Render backends
-│       ├── vulkan/
-│       ├── opengl/
-│       ├── metal/
-│       └── software/
-├── tests/                   # Unit + image comparison tests
-├── bindings/                # Language bindings (C++, C#)
-├── scripts/                 # Build, package, install scripts
-├── docs/
-│   ├── VOCABULARY.md        # Token dictionary
-│   ├── DEPENDENCIES.md      # Third-party licenses
-│   └── DECISIONS.md         # Design decisions log
-├── CMakeLists.txt
-├── .github/workflows/ci.yml
-└── LICENSE (MIT)
-```
+- Application: calls the public C API from C, C++, or the C# wrapper.
+- Public API: validates requests and exposes opaque handles and result codes.
+- Core: lifecycle, resources, handles, errors, cameras, meshes, and scene entities.
+- Math: vectors, quaternions, and column-major 4x4 matrices.
+- Platform: window lifecycle, input, events, monotonic timing, and sleeping.
+- Renderer: software rasterization; optional Vulkan code is still partial.
+- Dependencies: vendored C/C++ libraries under src/thirdparty.
 
-## Build & Test (Phase 1)
+## Frame loop and timing
 
-```bash
-# Configure
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DHX_STATIC_RUNTIME=ON
+A window loop calls hx_tick, updates and renders, then calls hx_show. hx_tick polls events and updates hx_get_win_dt. hx_set_win_fps_limit configures the maximum tick rate per window; zero means uncapped. Headless windows can use this cap. For native windows, enabling VSync bypasses the software limiter.
 
-# Build
-cmake --build build --config Release
+The timer uses std::chrono::steady_clock. Delta time includes frame pacing and work between ticks. hx_get_win_time returns monotonic elapsed time from the platform timer.
 
-# Test
-ctest --test-dir build --output-on-failure
+## Matrix convention
 
-# Run demo (headless triangle → PNG)
-./build/helix_demo_headless
-```
+HxMat4 stores values column-major as m[column][row] and is used with column vectors. hx_mul_mat4(a, b, out) computes a times b. The output may alias either input. hx_make_mat4_trs composes translation, rotation, then scale (T x R x S).
+
+## Repository modules
+
+- include/: public C API.
+- src/core/: engine lifecycle, handles, resources, and scene objects.
+- src/math/: math types and operations.
+- src/platform/: windows, input, event handling, and timing; native adapters are in platform-specific subdirectories.
+- src/render/software/: software renderer and rasterizer.
+- src/thirdparty/: vendored dependencies.
+- tests/: API, math, platform, renderer, and resource tests.
+- demos/: headless triangle and visual smoke example.
+- packaging/ and pkg/: package definitions and distribution artifacts.
+- docs/: design decisions, dependency notes, publishing instructions, and API vocabulary.
+
+## Build and test
+
+Configure with CMake using HX_BUILD_TESTS=ON and HX_BUILD_HEADLESS_DEMO=ON, build the selected configuration, then run ctest --test-dir build --output-on-failure. See README.md and CONTRIBUTING.md for platform-specific commands.

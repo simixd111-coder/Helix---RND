@@ -4,7 +4,7 @@ int main()
 {
     int major = 0, minor = 0, patch = 0;
     hx_version(&major, &minor, &patch);
-    if (major != 2 || minor != 0 || patch != 0)
+    if (major != 2 || minor != 5 || patch != 0)
         return 10;
 
     if (hx_make_lamp(HX_LAMP_POINT, HX_WHITE, 1.0f) != nullptr)

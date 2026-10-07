@@ -4,6 +4,8 @@ Installs the C# bindings for Helix RND via P/Invoke.
 
 ## Usage
 
+The C# wrapper exposes the native APIs listed below. The per-window FPS cap is currently available through the C API, not this wrapper. Package version is controlled by HelixRND.csproj; update it before packing a release.
+
 ```bash
 dotnet add package HelixRND
 ```
@@ -45,10 +47,10 @@ cp build/helix.dll runtimes/win-x64/native/        # Windows
 dotnet pack -c Release
 ```
 
-The resulting `HelixRND.2.0.0.nupkg` can be pushed to nuget.org:
+For release 2.5.0, the resulting `HelixRND.2.5.0.nupkg` can be pushed to nuget.org after updating the project version:
 
 ```bash
-dotnet nuget push HelixRND.2.0.0.nupkg --api-key <KEY> --source https://api.nuget.org/v3/index.json
+dotnet nuget push HelixRND.2.5.0.nupkg --api-key <KEY> --source https://api.nuget.org/v3/index.json
 ```
 
 > Rebuild and re-stage the native DLL for every release

@@ -1,6 +1,6 @@
 # Helix RND — Design Decisions Log
 
-**Version:** 0.1.0 (Phase 1)
+**Status:** Active decision log; entries through release 2.5.0
 **Purpose:** Record architectural decisions with rationale for future reference.
 
 ---
@@ -23,7 +23,7 @@ Each entry follows:
 ### HX-20261003-001: Pure C API with Opaque Handles
 **Status:** Accepted
 **Context:** Need stable ABI for bindings (C, C++, C#).
-**Decision:** Public API is pure C99 (`helix.h`). All objects are opaque handles (`typedef struct HxWin HxWin;`). Functions use `hx_` prefix, types use `Hx` prefix, constants use `HX_` prefix.
+**Decision:** Public API follows C11 (`helix.h`). All objects are opaque handles (`typedef struct HxWin HxWin;`). Functions use `hx_` prefix, types use `Hx` prefix, constants use `HX_` prefix.
 **Consequences:**
 - No C++ in public headers — enables direct FFI from any language
 - Handle validation adds slight overhead (debug builds)
@@ -123,7 +123,7 @@ Each entry follows:
 ### HX-20261003-009: Column-Major Matrices, Right-Handed Coordinates
 **Status:** Accepted
 **Context:** Match Vulkan/Metal/OpenGL conventions. Interop with glTF.
-**Decision:** `HxMat4` is column-major (OpenGL/Vulkan/Metal native). Coordinate system: right-handed, Y up, Z forward (camera looks down -Z). Matches glTF.
+**Decision:** `HxMat4` is column-major. Coordinate system: right-handed, Y up, Z forward (camera looks down -Z). Matrices multiply column vectors; `hx_mul_mat4(a, b, out)` computes `a × b`.
 **Consequences:**
 - Direct upload to GPU uniform buffers
 - `hx_cam_persp`/`hx_cam_ortho` produce column-major matrices
@@ -149,13 +149,13 @@ Each entry follows:
 **Context:** Original API had inconsistent verbs (`world_add`, `world_drop`, `cam_look`, `cam_persp`, `lamp_sun_dir`, `buffer_write`, `mat4_mul`, `quat_slerp`, etc.) making it hard to guess names.
 **Decision:** Fixed verb set: `make`, `load`, `drop`, `add`, `draw`, `move`, `spin`, `size`, `look`, `set`, `get`, `snap`, `say`, `tween`, `on`. All functions follow `hx_<verb>_<object>`.
 **Consequences:**
-- Major renaming of existing functions (see RENAME_MAPPING.md)
+- Major renaming of existing functions to align with the verb/object vocabulary
 - `hx_world_add` → `hx_add_mesh`, `hx_world_drop` → `hx_drop_mesh`
 - `hx_cam_look` → `hx_look`, `hx_cam_persp` → `hx_set_cam_persp`
 - `hx_lamp_sun_dir` → `hx_set_lamp_dir`, `hx_buffer_write` → `hx_write_buffer`
 - `hx_mat4_mul` → `hx_mul_mat4`, `hx_quat_slerp` → `hx_slerp_quat`
 - Math helpers use consistent prefixes: `make_`, `mul_`, `inverse_`, `transpose_`, `slerp_`, `rotate_`
-**Related:** RENAME_MAPPING.md, VOCABULARY.md, helix.h
+**Related:** VOCABULARY.md, helix.h
 
 ### HX-20261003-012: Unified Event Callback System
 **Status:** Accepted
@@ -176,7 +176,7 @@ Each entry follows:
 - `hx_win_set_title` → `hx_set_win_title` (already consistent)
 - `hx_cam_view` → `hx_get_cam_view`, `hx_cam_persp` → `hx_set_cam_persp`
 - `hx_key_state` → `hx_get_key_state`, `hx_mouse_btn` → `hx_get_mouse_btn`
-**Related:** RENAME_MAPPING.md, VOCABULARY.md
+**Related:** VOCABULARY.md
 
 ### HX-20261003-014: Separate GPU Request (HxGpu) from Active Backend (HxBackend)
 **Status:** Accepted
@@ -267,11 +267,25 @@ Each entry follows:
 - Automated style enforcement
 **Related:** Root directory files, .github/
 
+### HX-20261007-021: Column-Major Matrix Product Semantics
+**Status:** Accepted
+**Context:** Matrix composition and camera transforms require a single, testable multiplication convention.
+**Decision:** Matrices multiply column vectors; `hx_mul_mat4(a, b, out)` computes `a × b` and permits `out` to alias either input.
+**Consequences:** TRS composition is `T × R × S`; non-commuting transform tests protect the order.
+**Related:** `src/math/math.cpp`, `tests/test_math.cpp`, math API
+
+### HX-20261007-022: Per-Window Frame Pacing
+**Status:** Accepted
+**Context:** Applications need a simple maximum frame rate without changing the boot configuration ABI.
+**Decision:** Expose `hx_set_win_fps_limit` and `hx_get_win_fps_limit`; zero means uncapped. `hx_tick` waits using the monotonic platform clock, except when native VSync is active. Headless windows also honor the cap.
+**Consequences:** Delta time includes frame pacing; applications can configure each window independently.
+**Related:** `include/helix.h`, `src/platform/window.cpp`, `tests/test_platform_stub.cpp`
+
 ---
 
 ## Superseded / Rejected
 
-*None yet — Phase 1 just started.*
+*No superseded or rejected decisions recorded.*
 
 ---
 
@@ -280,3 +294,4 @@ Each entry follows:
 | Date | Decision IDs | Notes |
 |------|--------------|-------|
 | 2026-10-03 | HX-20261003-001 through -020 | Phase 1 initial decisions + vocabulary alignment |
+| 2026-10-07 | HX-20261007-021 through -022 | Matrix multiplication semantics and per-window frame pacing |

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-10-07
+
+### Added
+- Per-window FPS cap API: `hx_set_win_fps_limit` and `hx_get_win_fps_limit`; `0` disables the cap.
+- Windows visual smoke demo for interactive renderer checks.
+
+### Fixed
+- Correct column-major matrix multiplication order and support aliased output.
+- Implement monotonic platform timing and sleeping so delta time and frame pacing work.
+
+### Changed
+- Reuse software renderer buffers between same-size frames to reduce repeated allocation and visible flicker.
+- Native VSync takes priority over the software FPS cap; headless windows can use the cap.
+
 ## [2.0.0] - 2026-10-07
 
 ### Added

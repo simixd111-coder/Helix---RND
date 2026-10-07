@@ -10,7 +10,7 @@ Thank you for your interest in contributing! This document explains how to build
 |----------|--------------|
 | Windows | Visual Studio 2022 + Windows SDK, Ninja, CMake 3.20+ |
 | Linux | `build-essential`, `ninja-build`, `cmake` |
-| macOS | Xcode Command Line Tools, `ninja`, `cmake` (Homebrew) |
+| macOS | No está en la matriz de plataformas soportadas actualmente. |
 
 ### Build & Test
 
@@ -40,7 +40,7 @@ cd build && ctest --output-on-failure
 ## Code Style
 
 ### C/C++ (Core Engine)
-- **Standard**: C++20 for implementation, C99 for public API (`helix.h`)
+- **Standard**: C++20 for implementation, C11 for the public API (`helix.h`)
 - **Formatting**: `clang-format` (config in `.clang-format` at repo root)
 - **Naming**: Follow the [Vocabulary](docs/VOCABULARY.md) strictly
   - Functions: `hx_<verb>_<object>` (e.g., `hx_make_win`, `hx_spin_mesh`)
@@ -109,11 +109,10 @@ Look for labels:
 - `documentation` — Docs improvements
 
 Examples:
-- Implement Win32 window backend (`src/platform/win32/`)
-- Implement X11 window backend (`src/platform/x11/`)
-- Add more math helpers (quaternion operations, matrix decompose)
-- Improve software rasterizer (perspective-correct interpolation)
-- Add image comparison test infrastructure
+- Add alpha blending, more topologies, or additional software rasterizer tests
+- Implement visible-window drawing and complete the Vulkan renderer path
+- Add text/fonts, skeletal animation, or post-process effects
+- Expand matrix and quaternion helper coverage
 
 ## Questions?
 

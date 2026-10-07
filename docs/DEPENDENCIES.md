@@ -1,6 +1,7 @@
 # Helix RND — Dependencies & Licenses
 
-**Version:** 2.0.0
+**Version:** 2.5.0
+**Dependencies:** No new third-party dependencies in this release.
 **Policy:** Third-party code is vendored. The software backend has no GPU runtime requirement; Vulkan mode dynamically loads the operating-system Vulkan loader and a compatible driver.
 
 ---
@@ -44,6 +45,7 @@
 ## Runtime Dependencies
 
 The software backend needs no graphics runtime. Vulkan mode requires a system Vulkan loader and compatible driver, loaded dynamically; the Vulkan SDK is not required to build.
+- Frame timing and sleeping use the C++ standard library (`std::chrono`, `std::this_thread`); no additional dependency is needed.
 - C/C++ runtime can be linked statically (`/MT` on Windows, `-static-libstdc++ -static-libgcc` on Linux)
 - No GLFW, SDL, GLEW or runtime SDK installation is required
 - GPU drivers are provided by the OS/IHV and are not bundled

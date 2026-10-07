@@ -34,6 +34,7 @@ struct HxWinImpl {
     bool vsync;                  // VSync enabled
     bool fullscreen;             // Fullscreen
     bool headless;               // Headless mode
+    uint32_t max_fps;            // 0 = uncapped
     double last_time;            // Last frame time
     double dt;                   // Delta time
     char title[256];             // Window title
@@ -58,6 +59,8 @@ double hx_win_time(HxWin win);
 void hx_win_set_title(HxWin win, const char* title);
 void hx_win_set_size(HxWin win, int width, int height);
 void hx_win_set_vsync(HxWin win, bool enabled);
+void hx_win_set_fps_limit(HxWin win, uint32_t max_fps);
+uint32_t hx_win_fps_limit(HxWin win);
 void hx_win_set_fullscreen(HxWin win, bool fullscreen);
 bool hx_win_tick(HxWin win);
 void hx_win_show(HxWin win);

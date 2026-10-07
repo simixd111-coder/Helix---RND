@@ -102,6 +102,13 @@ void hx_win_set_vsync(HxWin win, bool enabled) {
     if (!win->headless) hx_win_platform_set_vsync(win, enabled);
 }
 
+void hx_win_set_fps_limit(HxWin win, uint32_t max_fps) {
+    if (!win) return;
+    win->max_fps = max_fps;
+}
+
+uint32_t hx_win_fps_limit(HxWin win) { return win ? win->max_fps : 0; }
+
 void hx_win_set_fullscreen(HxWin win, bool fullscreen) {
     if (!win) return;
     win->fullscreen = fullscreen;
@@ -115,6 +122,14 @@ bool hx_win_tick(HxWin win) {
     if (!win || !win->alive) return false;
 
     double now = hx_platform_time();
+    if (win->max_fps > 0 && (win->headless || !win->vsync)) {
+        const double frame_interval = 1.0 / (double)win->max_fps;
+        const double remaining = frame_interval - (now - win->last_time);
+        if (remaining > 0.0) {
+            hx_platform_sleep(remaining);
+            now = hx_platform_time();
+        }
+    }
     win->dt = now - win->last_time;
     win->last_time = now;
 
@@ -249,5 +264,7 @@ HX_API double HX_CALL hx_get_win_time(HxWin win) { return hx_win_time(win); }
 HX_API void HX_CALL hx_set_win_title(HxWin win, const char* title) { hx_win_set_title(win, title); }
 HX_API void HX_CALL hx_set_win_size(HxWin win, int width, int height) { hx_win_set_size(win, width, height); }
 HX_API void HX_CALL hx_set_win_vsync(HxWin win, bool enabled) { hx_win_set_vsync(win, enabled); }
+HX_API void HX_CALL hx_set_win_fps_limit(HxWin win, uint32_t max_fps) { hx_win_set_fps_limit(win, max_fps); }
+HX_API uint32_t HX_CALL hx_get_win_fps_limit(HxWin win) { return hx_win_fps_limit(win); }
 HX_API void HX_CALL hx_set_win_fullscreen(HxWin win, bool enabled) { hx_win_set_fullscreen(win, enabled); }
 HX_API void HX_CALL hx_on(HxWin win, HxEventType mask, HxEventCallback cb, void* user) { hx_win_on(win, mask, cb, user); }

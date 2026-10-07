@@ -193,14 +193,16 @@ HX_API void HX_CALL hx_mat4_identity(HxMat4* m) {
 }
 
 HX_API void HX_CALL hx_mat4_mul(const HxMat4* a, const HxMat4* b, HxMat4* out) {
+    HxMat4 result;
     for (int c = 0; c < 4; ++c) {
         for (int r = 0; r < 4; ++r) {
-            out->m[c][r] = a->m[c][0] * b->m[0][r] +
-                           a->m[c][1] * b->m[1][r] +
-                           a->m[c][2] * b->m[2][r] +
-                           a->m[c][3] * b->m[3][r];
+            result.m[c][r] = a->m[0][r] * b->m[c][0] +
+                             a->m[1][r] * b->m[c][1] +
+                             a->m[2][r] * b->m[c][2] +
+                             a->m[3][r] * b->m[c][3];
         }
     }
+    *out = result;
 }
 
 HX_API void HX_CALL hx_mat4_translate(const HxVec3* v, HxMat4* out) {

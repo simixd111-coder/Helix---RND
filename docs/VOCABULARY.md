@@ -1,7 +1,7 @@
 # Helix Vocabulary — Token Dictionary
 
-**Version:** 0.1.0 (Phase 1)
-**Status:** Living document — updated each phase
+**Version:** 2.5.0
+**Status:** Living document — updated with the public API
 **Source of truth:** `include/helix.h` — this document must match the header exactly.
 
 ---
@@ -28,7 +28,7 @@
 
 ---
 
-## Core Tokens (Phase 1)
+## Core Tokens
 
 ### Lifecycle
 | Token | C API | Meaning |
@@ -84,9 +84,11 @@
 | `get_win_dpi_scale` | `hx_get_win_dpi_scale()` | HiDPI scale factor |
 | `get_win_dt` | `hx_get_win_dt()` | Delta time (seconds) |
 | `get_win_time` | `hx_get_win_time()` | Total time since boot |
+| `get_win_fps_limit` | `hx_get_win_fps_limit()` | Configured per-window frame cap; 0 = uncapped |
 | `set_win_title` | `hx_set_win_title()` | Change window title |
 | `set_win_size` | `hx_set_win_size()` | Resize window |
 | `set_win_vsync` | `hx_set_win_vsync()` | Toggle vsync |
+| `set_win_fps_limit` | `hx_set_win_fps_limit()` | Set frame cap; 0 = uncapped; native VSync takes priority |
 | `set_win_fullscreen` | `hx_set_win_fullscreen()` | Toggle fullscreen |
 | `snap_win` | `hx_snap_win()` | Capture window to PNG |
 
@@ -417,7 +419,7 @@
 | Token | C API | Meaning |
 |-------|-------|---------|
 | `make_mat4_identity` | `hx_make_mat4_identity()` | Identity matrix |
-| `mul_mat4` | `hx_mul_mat4()` | Multiply A×B |
+| `mul_mat4` | `hx_mul_mat4()` | Compute A×B using column-major matrices and column vectors; supports aliased output |
 | `make_mat4_translate` | `hx_make_mat4_translate()` | Translation matrix |
 | `make_mat4_rotate` | `hx_make_mat4_rotate()` | Rotation from quat |
 | `make_mat4_scale` | `hx_make_mat4_scale()` | Scale matrix |
@@ -580,3 +582,4 @@
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1.0 | 2026-10-03 | Phase 1: Complete vocabulary aligned with helix.h |
+| 2.5.0 | 2026-10-07 | Documented per-window FPS cap API and matrix multiplication semantics |

@@ -8,7 +8,7 @@ Este documento explica cómo publicar Helix RND en los tres canales de distribuc
 | **NuGet** (C#) | `dotnet add package HelixRND` | Paquete con bindings C# + `helix.dll` (runtimes/win-x64/native) |
 | **CMake / FetchContent** (C/C++) | `find_package(helix)` | Config CMake instalado + headers + libs |
 
----
+Esta guía describe el release 2.5.0. Antes de empaquetar, sincroniza esa versión en CMakeLists.txt, HelixRND.csproj y helix-rnd.nuspec; comprueba además el workflow de release y el changelog.
 
 ## Requisitos previos
 
@@ -77,7 +77,7 @@ build-shared/Release/helix.lib   # import library
 El script de Chocolatey espera un ZIP con esta estructura:
 
 ```
-helix-rnd-2.0.0-windows-x64/
+helix-rnd-2.5.0-windows-x64/
 ├── include/
 │   └── helix.h
 ├── lib/
@@ -90,7 +90,7 @@ helix-rnd-2.0.0-windows-x64/
 ```
 
 ```powershell
-$version = "2.0.0"
+$version = "2.5.0"
 $zipName = "helix-rnd-$version-windows-x64"
 $staging = "pkg/$zipName"
 
@@ -132,8 +132,8 @@ El workflow `.github/workflows/release.yml` hace esto automáticamente al pushea
 
 ```powershell
 # Crear y pushear el tag
-git tag -a v2.0.0 -m "Release 2.0.0"
-git push origin v2.0.0
+git tag -a v2.5.0 -m "Release 2.5.0"
+git push origin v2.5.0
 ```
 
 Esto disparará el workflow que:
@@ -156,14 +156,14 @@ cd packaging/chocolatey
 choco pack helix-rnd.nuspec
 ```
 
-Esto genera `helix-rnd.2.0.0.nupkg` en el directorio actual.
+Esto genera `helix-rnd.2.5.0.nupkg` en el directorio actual.
 
 El instalador verifica el ZIP con el asset `.sha256` publicado junto al ZIP de Windows en GitHub Releases. Publica ambos assets antes de enviar el paquete a Chocolatey.
 
 ### 3.2 Subir a Chocolatey Community
 
 ```powershell
-choco push helix-rnd.2.0.0.nupkg --api-key TU_CHAVE_API --source https://push.chocolatey.org/
+choco push helix-rnd.2.5.0.nupkg --api-key TU_CHAVE_API --source https://push.chocolatey.org/
 ```
 
 > La primera versión pasa por **revisión manual** (puede tardar horas/días). Las actualizaciones posteriores son automáticas.
@@ -171,7 +171,7 @@ choco push helix-rnd.2.0.0.nupkg --api-key TU_CHAVE_API --source https://push.ch
 ### 3.3 Verificar
 
 ```powershell
-choco install helix-rnd --version 2.0.0 --source https://community.chocolatey.org/api/v2
+choco install helix-rnd --version 2.5.0 --source https://community.chocolatey.org/api/v2
 ```
 
 ---
@@ -200,18 +200,18 @@ Copy-Item "C:\Users\Simon\Desktop\Helix RND\build-shared\Release\helix.dll" "$ru
 dotnet pack -c Release -o ../nupkg
 ```
 
-Esto genera `HelixRND.2.0.0.nupkg` en `packaging/nuget/nupkg/`.
+Esto genera `HelixRND.2.5.0.nupkg` en `packaging/nuget/nupkg/`.
 
 ### 4.3 Subir a NuGet.org
 
 ```powershell
-dotnet nuget push ../nupkg/HelixRND.2.0.0.nupkg --api-key TU_NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+dotnet nuget push ../nupkg/HelixRND.2.5.0.nupkg --api-key TU_NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 ```
 
 ### 4.4 Verificar
 
 ```powershell
-dotnet add package HelixRND --version 2.0.0
+dotnet add package HelixRND --version 2.5.0
 ```
 
 ---
@@ -227,7 +227,7 @@ include(FetchContent)
 FetchContent_Declare(
   helix
   GIT_REPOSITORY https://github.com/simixd111-coder/Helix---RND.git
-  GIT_TAG        v2.0.0
+  GIT_TAG        v2.5.0
 )
 
 FetchContent_MakeAvailable(helix)
@@ -270,7 +270,7 @@ Ejemplo de snippet para el workflow:
   run: |
     # ... (pasos 1.3 y 1.4 de arriba)
     choco pack packaging/chocolatey/helix-rnd.nuspec
-    choco push helix-rnd.2.0.0.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
+    choco push helix-rnd.2.5.0.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
 
 - name: Package NuGet
   if: runner.os == 'Windows'
@@ -280,7 +280,7 @@ Ejemplo de snippet para el workflow:
     New-Item -ItemType Directory -Force -Path $runtimes
     Copy-Item build-shared/Release/helix.dll "$runtimes/"
     dotnet pack packaging/nuget/HelixRND -c Release -o packaging/nuget/nupkg
-    dotnet nuget push packaging/nuget/nupkg/HelixRND.2.0.0.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+    dotnet nuget push packaging/nuget/nupkg/HelixRND.2.5.0.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
   env:
     CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

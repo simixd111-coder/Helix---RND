@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <chrono>
+#include <thread>
 
 #ifdef _WIN32
     #ifndef WIN32_LEAN_AND_MEAN
@@ -66,12 +68,13 @@ void hx_platform_set_log_cb(HxLogCallback cb, void* user) {
 // Time
 // -----------------------------------------------------------------------------
 double hx_platform_time(void) {
-    // Platform-specific implementation in platform_*.cpp
-    return 0.0;
+    using Clock = std::chrono::steady_clock;
+    static const Clock::time_point start = Clock::now();
+    return std::chrono::duration<double>(Clock::now() - start).count();
 }
 
 void hx_platform_sleep(double seconds) {
-    // Platform-specific
+    if (seconds > 0.0) std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
 }
 
 // -----------------------------------------------------------------------------

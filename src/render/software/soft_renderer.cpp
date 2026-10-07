@@ -42,7 +42,11 @@ bool hx_soft_init(int width, int height)
     if (width <= 0 || height <= 0)
         return false;
     if (g_soft.color_buffer)
+    {
+        if (g_soft.width == width && g_soft.height == height)
+            return true;
         hx_soft_quit();
+    }
 
     if (static_cast<size_t>(width) > SIZE_MAX / static_cast<size_t>(height) ||
         static_cast<size_t>(width) > SIZE_MAX / 4u)
@@ -481,6 +485,5 @@ HxResult hx_soft_render_world(int width, int height, HxWorld world, HxCam cam, v
         hx_soft_quit();
         return HX_ERR_OOM;
     }
-    hx_soft_quit();
     return HX_OK;
 }

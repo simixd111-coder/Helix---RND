@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(helix-rnd
-    VERSION 2.0.0
+    VERSION 2.5.0
     LANGUAGES CXX C
     DESCRIPTION "Helix RND — 2D/3D render engine with multi-language API"
     HOMEPAGE_URL "https://github.com/helix-rnd/helix"
@@ -30,6 +30,7 @@ option(HX_STATIC_RUNTIME      "Link C/C++ runtime statically (/MT, -static-libst
 option(HX_BUILD_TESTS         "Build tests" ON)
 option(HX_BUILD_DEMO          "Build demo applications" ON)
 option(HX_BUILD_HEADLESS_DEMO "Build headless triangle demo" ON)
+option(HX_BUILD_VISUAL_TEST   "Build the Windows interactive visual smoke test" OFF)
 option(HX_ENABLE_ASAN         "Enable AddressSanitizer" OFF)
 option(HX_ENABLE_UBSAN        "Enable UndefinedBehaviorSanitizer" OFF)
 option(HX_ENABLE_MSAN         "Enable MemorySanitizer (Linux only)" OFF)
@@ -410,6 +411,12 @@ if(HX_BUILD_HEADLESS_DEMO)
     )
     target_link_libraries(helix_demo_headless PRIVATE helix)
     hx_apply_compile_options(helix_demo_headless)
+endif()
+
+if(HX_BUILD_VISUAL_TEST AND WIN32)
+    add_executable(helix_visual_smoke WIN32 demos/visual_smoke/main.cpp)
+    target_link_libraries(helix_visual_smoke PRIVATE helix user32 gdi32)
+    hx_apply_compile_options(helix_visual_smoke)
 endif()
 
 # -----------------------------------------------------------------------------
