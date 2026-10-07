@@ -68,6 +68,8 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re
+          import os
+          import subprocess
 
           path = Path("Testing/Temporary/LastTest.log")
           if path.exists():
@@ -75,8 +77,19 @@ jobs:
               for block in re.split(r"(?=^\d+/\d+ Testing:)", text, flags=re.M):
                   name = re.search(r"^\d+/\d+ Test: ([^\r\n]+)", block, flags=re.M)
                   if name and re.search(r"^Test Failed\.", block, flags=re.M):
-                      detail = re.sub(r"\s+", " ", block).strip()
-                      message = f"{name.group(1)}: {detail[-1200:]}"
+                      test_name = name.group(1)
+                      suffix = ".exe" if os.name == "nt" else ""
+                      executable = Path.cwd() / f"{test_name}{suffix}"
+                      try:
+                          result = subprocess.run(
+                              [str(executable)], cwd=Path.cwd(), capture_output=True,
+                              text=True, errors="replace", timeout=30
+                          )
+                          output = (result.stdout + result.stderr).strip() or "no process output"
+                          detail = f"rerun exit={result.returncode}; {output}"
+                      except Exception as error:
+                          detail = f"rerun failed: {error}"
+                      message = f"{test_name}: {detail[-1200:]}"
                       for source, replacement in (("%", "%25"), ("\r", "%0D"), ("\n", "%0A"), (":", "%3A"), (",", "%2C")):
                           message = message.replace(source, replacement)
                       print(f"::error title=CTest failure::{message}")
