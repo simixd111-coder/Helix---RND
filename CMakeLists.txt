@@ -31,6 +31,7 @@ option(HX_BUILD_TESTS         "Build tests" ON)
 option(HX_BUILD_DEMO          "Build demo applications" ON)
 option(HX_BUILD_HEADLESS_DEMO "Build headless triangle demo" ON)
 option(HX_BUILD_VISUAL_TEST   "Build the Windows interactive visual smoke test" OFF)
+option(HX_TEST_PNG_DIAGNOSTICS "Trace PNG operations in diagnostic test builds" OFF)
 option(HX_ENABLE_ASAN         "Enable AddressSanitizer" OFF)
 option(HX_ENABLE_UBSAN        "Enable UndefinedBehaviorSanitizer" OFF)
 option(HX_ENABLE_MSAN         "Enable MemorySanitizer (Linux only)" OFF)
@@ -45,6 +46,10 @@ option(HX_BACKEND_SOFTWARE    "Enable software rasterizer backend" ON)
 
 if(HX_ENABLE_MSAN AND (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
     message(FATAL_ERROR "HX_ENABLE_MSAN requires Clang for both C and C++.")
+endif()
+
+if(HX_TEST_PNG_DIAGNOSTICS)
+    add_compile_definitions(HX_TEST_PNG_DIAGNOSTICS=1)
 endif()
 
 # Platform detection

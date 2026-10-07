@@ -8,6 +8,18 @@
 #include <limits>
 #include <vector>
 
+#if defined(HX_TEST_PNG_DIAGNOSTICS)
+#include <cstdio>
+static void hx_png_trace(const char* stage)
+{
+    std::fprintf(stderr, "PNG: %s\n", stage);
+    std::fflush(stderr);
+}
+#define HX_PNG_TRACE(stage) hx_png_trace(stage)
+#else
+#define HX_PNG_TRACE(stage) ((void)0)
+#endif
+
 static void hx_png_u32(std::vector<uint8_t>& out, uint32_t value)
 {
     out.push_back(static_cast<uint8_t>(value >> 24));
@@ -40,9 +52,11 @@ static void hx_png_chunk(std::vector<uint8_t>& png, const char type[4], const ui
 
 static bool hx_png_write_rgba8(const char* path, int width, int height, const void* pixels, size_t stride)
 {
+    HX_PNG_TRACE("write start");
     if (!path || !path[0] || width <= 0 || height <= 0 || !pixels ||
         static_cast<size_t>(width) > std::numeric_limits<size_t>::max() / 4u)
         return false;
+    HX_PNG_TRACE("input validation passed");
     const size_t row_bytes = static_cast<size_t>(width) * 4u;
     if (stride < row_bytes || row_bytes == std::numeric_limits<size_t>::max() ||
         (height > 1 && stride > (std::numeric_limits<size_t>::max() - row_bytes) / static_cast<size_t>(height - 1)) ||
@@ -59,6 +73,7 @@ static bool hx_png_write_rgba8(const char* path, int width, int height, const vo
     try
     {
         raw.resize(raw_size);
+        HX_PNG_TRACE("raw buffer allocated");
         const auto* source = static_cast<const uint8_t*>(pixels);
         for (int y = 0; y < height; ++y)
         {
@@ -66,6 +81,7 @@ static bool hx_png_write_rgba8(const char* path, int width, int height, const vo
             raw[destination_offset] = 0;
             std::copy_n(source + static_cast<size_t>(y) * stride, row_bytes, raw.data() + destination_offset + 1u);
         }
+        HX_PNG_TRACE("pixels copied");
 
         compressed.reserve(raw_size + block_count * 5u + 6u);
         compressed.push_back(0x78);
@@ -91,6 +107,7 @@ static bool hx_png_write_rgba8(const char* path, int width, int height, const vo
             b = (b + a) % 65521u;
         }
         hx_png_u32(compressed, (b << 16) | a);
+        HX_PNG_TRACE("compressed stream built");
 
         static const uint8_t signature[] = {137, 80, 78, 71, 13, 10, 26, 10};
         png.insert(png.end(), signature, signature + sizeof(signature));
@@ -106,10 +123,13 @@ static bool hx_png_write_rgba8(const char* path, int width, int height, const vo
         ihdr[8] = 8;
         ihdr[9] = 6;
         hx_png_chunk(png, "IHDR", ihdr, sizeof(ihdr));
+        HX_PNG_TRACE("IHDR chunk built");
         if (compressed.size() > std::numeric_limits<uint32_t>::max())
             return false;
         hx_png_chunk(png, "IDAT", compressed.data(), compressed.size());
+        HX_PNG_TRACE("IDAT chunk built");
         hx_png_chunk(png, "IEND", nullptr, 0);
+        HX_PNG_TRACE("IEND chunk built");
     }
     catch (...)
     {
@@ -118,31 +138,38 @@ static bool hx_png_write_rgba8(const char* path, int width, int height, const vo
     std::ofstream file(path, std::ios::binary);
     if (!file)
         return false;
+    HX_PNG_TRACE("output file opened");
     file.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
+    HX_PNG_TRACE("PNG bytes written");
     return file.good();
 }
 
 HX_API HxResult HX_CALL hx_save_pic(HxPic picture, const char* path)
 {
+    HX_PNG_TRACE("hx_save_pic entered");
     if (!path || !path[0])
         return HX_ERR_INVALID_ARG;
     if (!hx_resource_is_registered(picture))
         return HX_ERR_INVALID_HANDLE;
+    HX_PNG_TRACE("picture resource found");
     int width = 0;
     int height = 0;
     size_t stride = 0;
     void* pixels = nullptr;
     hx_get_pic_size(picture, &width, &height);
     hx_get_pic_pixels(picture, &pixels, &stride);
+    HX_PNG_TRACE("picture metadata read");
     return hx_png_write_rgba8(path, width, height, pixels, stride) ? HX_OK : HX_ERR;
 }
 
 HX_API HxResult HX_CALL hx_snap_win(HxWin win, const char* path)
 {
+    HX_PNG_TRACE("hx_snap_win entered");
     if (!path || !path[0])
         return HX_ERR_INVALID_ARG;
     if (!hx_resource_is_registered(win))
         return HX_ERR_INVALID_HANDLE;
+    HX_PNG_TRACE("window resource found");
     if (!win->headless)
         return HX_ERR_UNSUPPORTED;
     void* pixels = nullptr;
@@ -151,5 +178,6 @@ HX_API HxResult HX_CALL hx_snap_win(HxWin win, const char* path)
     int height = 0;
     if (hx_headless_get_pixels(win, &pixels, &stride, &width, &height) != HX_OK)
         return HX_ERR_INVALID_STATE;
+    HX_PNG_TRACE("headless pixels acquired");
     return hx_png_write_rgba8(path, width, height, pixels, stride) ? HX_OK : HX_ERR;
 }

@@ -48,7 +48,8 @@ jobs:
             -DHX_BUILD_HEADLESS_DEMO=ON \
             -DHX_BACKEND_SOFTWARE=ON \
             -DHX_BACKEND_VULKAN=OFF \
-            -DHX_BACKEND_OPENGL=OFF
+            -DHX_BACKEND_OPENGL=OFF \
+            -DHX_TEST_PNG_DIAGNOSTICS=ON
 
       - name: Build
         shell: bash
