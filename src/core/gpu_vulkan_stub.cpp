@@ -40,15 +40,5 @@ HX_API HxResult HX_CALL hx_get_gpu_devices(HxGpuDeviceInfo* devices, size_t capa
     return out_count ? HX_ERR_BACKEND_UNAVAILABLE : HX_ERR_INVALID_ARG;
 }
 
-HX_API HxResult HX_CALL hx_pick_gpu_device(
-    const HxGpuDeviceInfo* devices,
-    size_t count,
-    HxGpuPreference preference,
-    size_t* out_index
-) {
-    (void)devices;
-    (void)count;
-    (void)preference;
-    (void)out_index;
-    return HX_ERR_BACKEND_UNAVAILABLE;
-}
+// hx_pick_gpu_device lives in gpu_select.cpp: it is a pure selection policy
+// over a caller-supplied device list and must not depend on the Vulkan backend.

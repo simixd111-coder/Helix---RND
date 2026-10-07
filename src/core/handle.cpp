@@ -54,15 +54,15 @@ bool hx_handle_valid(uint64_t handle, uint32_t expected_tag) {
 
 static void* g_handles[HX_MAX_HANDLES] = {0};
 static uint32_t g_handle_tags[HX_MAX_HANDLES] = {0};
-static std::atomic<uint_fast32_t> g_handle_count{0};
 
 void* hx_handle_alloc(uint32_t tag, void* ptr) {
-    uint32_t idx = g_handle_count.fetch_add(1, std::memory_order_relaxed);
-    if (idx >= HX_MAX_HANDLES) return NULL;
-
     uint64_t handle = hx_handle_make(tag);
-    g_handles[idx] = ptr;
-    g_handle_tags[idx] = tag;
+    uint32_t index = hx_handle_index(handle);
+    if (index == 0 || index > HX_MAX_HANDLES) return NULL;
+
+    uint32_t slot = index - 1;
+    g_handles[slot] = ptr;
+    g_handle_tags[slot] = tag;
     return (void*)handle;
 }
 

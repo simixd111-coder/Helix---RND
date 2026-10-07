@@ -1,9 +1,18 @@
 $ErrorActionPreference = 'Stop'
 
 $packageName = 'helix-rnd'
-$version = '1.0.0'
-$url64 = "https://github.com/simixd111-coder/Helix---RND/releases/download/v1.0.0/helix-rnd-1.0.0-windows-x64.zip"
-$checksum64 = '5CB18C666C63AE16D2230EC9868DBEAFE1F4B0C8499D797392CA72EB2737F75B'
+$version = '2.0.0'
+$releaseUrl = "https://github.com/simixd111-coder/Helix---RND/releases/download/v$version"
+$zipName = "helix-rnd-$version-windows-x64.zip"
+$url64 = "$releaseUrl/$zipName"
+$checksumFile = Join-Path $env:TEMP "$packageName-$version.sha256"
+Get-ChocolateyWebFile -PackageName $packageName -FileFullPath $checksumFile -Url "$url64.sha256"
+$checksumLine = Get-Content -LiteralPath $checksumFile -Raw
+if ($checksumLine -notmatch '^(?<hash>[A-Fa-f0-9]{64})\s+') {
+    throw "The release checksum file for $zipName is invalid."
+}
+$checksum64 = $Matches.hash
+Remove-Item -LiteralPath $checksumFile -Force
 $checksumType64 = 'sha256'
 
 $toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Definition

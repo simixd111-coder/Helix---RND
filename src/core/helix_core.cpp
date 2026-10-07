@@ -1,11 +1,13 @@
 // helix_core.cpp — Core engine implementation (Phase 1)
 #include "helix.h"
+#include "core/render_internal.h"
 #include "gpu_vulkan_internal.h"
 #include "resource_internal.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <limits>
 
 // -----------------------------------------------------------------------------
 // Global State
@@ -95,10 +97,22 @@ HX_API HxResult HX_CALL hx_boot(const HxCfg* cfg) {
             g_backend = HX_BACKEND_UNKNOWN;
             return HX_ERR_BACKEND_UNAVAILABLE;
         } else {
+#if defined(HX_HAS_SOFTWARE)
             g_backend = HX_BACKEND_SOFTWARE;
+#else
+            hx_set_error("No requested graphics backend is available in this build");
+            g_backend = HX_BACKEND_UNKNOWN;
+            return HX_ERR_BACKEND_UNAVAILABLE;
+#endif
         }
     } else if (requested == HX_GPU_SOFT) {
+#if defined(HX_HAS_SOFTWARE)
         g_backend = HX_BACKEND_SOFTWARE;
+#else
+        hx_set_error("The software renderer is disabled in this build");
+        g_backend = HX_BACKEND_UNKNOWN;
+        return HX_ERR_BACKEND_UNAVAILABLE;
+#endif
     } else {
         hx_set_error("Requested GPU backend is not available in this build");
         g_backend = HX_BACKEND_UNKNOWN;
@@ -151,6 +165,35 @@ HX_API void HX_CALL hx_set_log_cb(HxLogCallback cb, void* user) {
     g_log_user = user;
 }
 
+HX_API HxResult HX_CALL hx_render_headless(
+    int width, int height,
+    HxWorld world, HxCam cam,
+    void* out_pixels, size_t out_stride
+) {
+    if (!g_booted) {
+        hx_set_error("Engine is not booted");
+        return HX_ERR_NOT_BOOTED;
+    }
+    if (width <= 0 || height <= 0 || !world || !cam || !out_pixels ||
+        static_cast<size_t>(width) > std::numeric_limits<size_t>::max() / 4u) {
+        hx_set_error("Invalid headless render arguments");
+        return HX_ERR_INVALID_ARG;
+    }
+    if (!hx_resource_is_registered(world) || !hx_resource_is_registered(cam)) {
+        hx_set_error("Invalid headless world or camera handle");
+        return HX_ERR_INVALID_HANDLE;
+    }
+    const size_t row_bytes = static_cast<size_t>(width) * 4u;
+    const size_t stride = out_stride == 0 ? row_bytes : out_stride;
+    if (stride < row_bytes || (height > 1 && stride >
+        (std::numeric_limits<size_t>::max() - row_bytes) / static_cast<size_t>(height - 1))) {
+        hx_set_error("Invalid headless output stride");
+        return HX_ERR_INVALID_ARG;
+    }
+    HxResult result = hx_soft_render_world(width, height, world, cam, out_pixels, stride);
+    if (result != HX_OK) hx_set_error("Headless software rendering failed");
+    return result;
+}
 HX_API void HX_CALL hx_get_memory_stats(HxMemoryStats* out_stats) {
     hx_resource_get_stats(out_stats);
 }

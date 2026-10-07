@@ -1,5 +1,5 @@
 # Helix RND — Release Workflow
-# Builds the library on Windows/Linux/macOS, packages headers + libs,
+# Builds the library on Windows/Linux, packages headers + libs,
 # computes SHA256 and creates a GitHub Release on tags (v*).
 
 name: Release
@@ -39,14 +39,6 @@ jobs:
               build/libhelix-core.a
               build/libhelix-platform.a
               build/libhelix-render-software.a
-          - os: macos-latest
-            platform: macos
-            arch: arm64
-            lib_files: |
-              build/libhelix-core.a
-              build/libhelix-platform.a
-              build/libhelix-render-software.a
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,11 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libx11-dev libwayland-dev libxkbcommon-dev
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install ninja cmake
+          sudo apt-get install -y ninja-build libx11-dev
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
@@ -75,7 +63,6 @@ jobs:
             -DHX_BUILD_HEADLESS_DEMO=ON \
             -DHX_BACKEND_VULKAN=OFF \
             -DHX_BACKEND_OPENGL=OFF \
-            -DHX_BACKEND_METAL=OFF \
             -DHX_BACKEND_SOFTWARE=ON
 
       - name: Build
@@ -102,8 +89,8 @@ jobs:
           "$hash  $zipName.zip" | Out-File "pkg/$zipName.zip.sha256" -Encoding ascii
           Write-Host "SHA256: $hash"
 
-      - name: Package (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
         run: |
           version="${GITHUB_REF_NAME#v}"
           zipName="helix-rnd-$version-${{ matrix.platform }}-${{ matrix.arch }}"
@@ -117,6 +104,7 @@ jobs:
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           files: |
             pkg/*.zip
             pkg/*.sha256
@@ -126,6 +114,7 @@ jobs:
     needs: release
     runs-on: windows-latest
     permissions:
+      contents: read
       id-token: write  # Required for OIDC trusted publishing
     steps:
       - name: Checkout
@@ -164,12 +153,18 @@ jobs:
           New-Item -ItemType Directory -Force -Path $runtimesDir | Out-Null
           
           # Copy the shared library
-          Copy-Item build-shared/Release/helix.dll $runtimesDir/
+          Copy-Item build-shared/helix.dll $runtimesDir/
           
           # Pack the NuGet package
-          dotnet pack $nuspecDir -c Release -o ../nupkg -p:Version=$version
+          dotnet pack $nuspecDir -c Release -o packaging/nuget/nupkg -p:Version=$version
+
+      - name: NuGet login (OIDC)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
 
       - name: Publish to NuGet (Trusted Publishing)
         run: |
           $nupkg = Get-ChildItem packaging/nuget/nupkg/*.nupkg | Select-Object -First 1
-          dotnet nuget push $nupkg.FullName --source https://api.nuget.org/v3/index.json
+          dotnet nuget push $nupkg.FullName --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json

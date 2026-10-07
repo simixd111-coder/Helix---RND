@@ -5,7 +5,7 @@
 #include <cstdio>
 
 #define EPS 1e-5f
-#define ASSERT_EQ(a, b) do { if (fabsf((a) - (b)) > EPS) { printf("FAIL: %s == %s (%.6f vs %.6f)\n", #a, #b, (a), (b)); return 1; } } while(0)
+#define ASSERT_EQ(a, b) do { if (fabsf((a) - (b)) > EPS) { printf("FAIL: %s == %s (%.6f vs %.6f)\n", #a, #b, (double)(a), (double)(b)); return 1; } } while(0)
 #define ASSERT_VEC3_EQ(a, ...) do { HxVec3 expected = __VA_ARGS__; ASSERT_EQ((a).x, expected.x); ASSERT_EQ((a).y, expected.y); ASSERT_EQ((a).z, expected.z); } while(0)
 #define ASSERT_QUAT_EQ(a, ...) do { HxQuat expected = __VA_ARGS__; ASSERT_EQ((a).x, expected.x); ASSERT_EQ((a).y, expected.y); ASSERT_EQ((a).z, expected.z); ASSERT_EQ((a).w, expected.w); } while(0)
 
@@ -43,7 +43,7 @@ int test_vec3() {
 int test_quat() {
     HxQuat q;
     hx_make_quat_identity(&q);
-    ASSERT_QUAT_EQ(q, (HxQuat){0, 0, 0, 1});
+    ASSERT_QUAT_EQ(q, HxQuat{0, 0, 0, 1});
 
     HxQuat a = {0, 0, 0.7071067f, 0.7071067f}; // 90 deg around Z
     HxQuat b = {0, 0.7071067f, 0, 0.7071067f}; // 90 deg around Y
@@ -52,16 +52,16 @@ int test_quat() {
 
     HxVec3 axis = {0, 0, 1};
     hx_make_quat_axis_angle(&axis, 1.570796f, &q); // 90 deg
-    ASSERT_QUAT_EQ(q, (HxQuat){0, 0, 0.7071067f, 0.7071067f});
+    ASSERT_QUAT_EQ(q, HxQuat{0, 0, 0.7071067f, 0.7071067f});
 
     hx_make_quat_euler(1.570796f, 0, 0, &q); // 90 deg X
-    ASSERT_QUAT_EQ(q, (HxQuat){0.7071067f, 0, 0, 0.7071067f});
+    ASSERT_QUAT_EQ(q, HxQuat{0.7071067f, 0, 0, 0.7071067f});
 
     HxQuat q1 = {0, 0, 0, 1};
     HxQuat q2 = {0, 0, 0.7071067f, 0.7071067f};
     hx_slerp_quat(&q1, &q2, 0.5f, &c);
     // Should be 45 deg around Z
-    ASSERT_QUAT_EQ(c, (HxQuat){0, 0, 0.382683f, 0.92388f});
+    ASSERT_QUAT_EQ(c, HxQuat{0, 0, 0.382683f, 0.92388f});
 
     HxVec3 v = {1, 0, 0};
     HxVec3 out;

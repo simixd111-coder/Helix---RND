@@ -1,6 +1,6 @@
 /*
  * helix.h — Helix RND Public C API (Stable ABI)
- * Version: 0.1.0 (Phase 1)
+ * Version: 2.0.0
  * License: MIT
  * SPDX-License-Identifier: MIT
  *
@@ -25,10 +25,10 @@ extern "C" {
  * Version & Platform Detection
  * ============================================================================ */
 
-#define HX_VERSION_MAJOR 0
-#define HX_VERSION_MINOR 1
+#define HX_VERSION_MAJOR 2
+#define HX_VERSION_MINOR 0
 #define HX_VERSION_PATCH 0
-#define HX_VERSION_STRING "0.1.0"
+#define HX_VERSION_STRING "2.0.0"
 
 /* Platform */
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -301,7 +301,7 @@ HX_API void HX_CALL hx_set_win_size(HxWin win, int width, int height);
 HX_API void HX_CALL hx_set_win_vsync(HxWin win, bool enabled);
 HX_API void HX_CALL hx_set_win_fullscreen(HxWin win, bool fullscreen);
 
-/* Capture window contents to PNG file (headless or visible). Returns HX_OK on success. */
+/* Headless windows can be captured to PNG; visible-window capture is unsupported. */
 HX_API HxResult HX_CALL hx_snap_win(HxWin win, const char* path);
 
 /* ============================================================================
@@ -543,7 +543,11 @@ typedef struct { float x, y, z, w; } HxQuat;  /* xyz = vector, w = scalar */
 typedef struct { float r, g, b, a; } HxColor;
 
 /* Common colors */
+#ifdef __cplusplus
+#define HX_COLOR(r,g,b,a) HxColor{(r),(g),(b),(a)}
+#else
 #define HX_COLOR(r,g,b,a) (HxColor){(r),(g),(b),(a)}
+#endif
 #define HX_WHITE   HX_COLOR(1,1,1,1)
 #define HX_BLACK   HX_COLOR(0,0,0,1)
 #define HX_RED     HX_COLOR(1,0,0,1)
@@ -562,7 +566,7 @@ typedef struct { float r, g, b, a; } HxColor;
 HX_API HxWorld HX_CALL hx_make_world(void);
 HX_API HxResult HX_CALL hx_drop_world(HxWorld world);
 
-/* Add mesh instance to world (drawn when world is drawn) */
+/* Add a mesh instance; mesh and skin handles must stay alive until cleared or the world is dropped. */
 HX_API void HX_CALL hx_add_mesh(HxWorld world, HxMesh mesh, HxSkin skin, const HxMat4* transform);
 
 /* Clear all mesh instances from world (does NOT destroy resources) */
@@ -653,15 +657,17 @@ HX_API HxResult HX_CALL hx_drop_model(HxModel model);
 
 typedef uint32_t HxSkinFlags;
 #define HX_SKIN_NONE          0u
-#define HX_SKIN_UNLIT         (1u << 0)  /* Skip lighting, use base color directly */
+#define HX_SKIN_UNLIT         (1u << 0)  /* Base-color rendering */
 #define HX_SKIN_WIREFRAME     (1u << 1)
 #define HX_SKIN_DOUBLE_SIDED  (1u << 2)
 #define HX_SKIN_TRANSPARENT   (1u << 3)  /* Alpha blend */
 #define HX_SKIN_MASKED        (1u << 4)  /* Alpha test (cutout) */
 #define HX_SKIN_EMISSIVE      (1u << 5)  /* Emissive color */
 
+/* Software skin creation supports NONE, UNLIT and DOUBLE_SIDED flags; other flags return NULL. */
 HX_API HxSkin HX_CALL hx_make_skin(HxColor color, HxSkinFlags flags);
 HX_API HxSkin HX_CALL hx_make_skin_tex(HxTex tex, HxColor tint, HxSkinFlags flags);
+/* PBR material creation is unsupported and returns NULL. */
 HX_API HxSkin HX_CALL hx_make_skin_pbr(
     HxTex albedo, HxTex normal, HxTex metal_rough, HxTex ao, HxTex emissive,
     float metallic, float roughness, HxColor emissive_color, HxSkinFlags flags
@@ -705,6 +711,7 @@ typedef uint8_t HxLampType;
 #define HX_LAMP_POINT   1  /* Point — position + range + attenuation */
 #define HX_LAMP_SPOT    2  /* Spot — position + direction + angle + range */
 
+/* Lighting/lamp APIs are unsupported; constructor returns NULL. */
 HX_API HxLamp HX_CALL hx_make_lamp(HxLampType type, HxColor color, float intensity);
 
 /* Sun: direction is -transform.forward */
@@ -717,7 +724,7 @@ HX_API void HX_CALL hx_set_lamp_spot(HxLamp lamp, float inner_deg, float outer_d
 HX_API HxResult HX_CALL hx_drop_lamp(HxLamp lamp);
 
 /* ============================================================================
- * Texture (GPU resource)
+ * Texture
  * ============================================================================ */
 
 typedef uint32_t HxTexFlags;
@@ -728,8 +735,7 @@ typedef uint32_t HxTexFlags;
 #define HX_TEX_MIRROR     (1u << 3)  /* Wrap mirror */
 #define HX_TEX_LINEAR     (1u << 4)  /* Linear filter (default nearest) */
 
-/* Create from raw pixel data (RGBA8, BGRA8, R8, RG8, RGB8, RGBA16F, etc.).
- * format: one of HX_TEX_FMT_* below. */
+/* Create from raw pixel data. The software renderer supports 8-bit R/RG/RGB/RGBA/BGRA; alpha is currently opaque. */
 typedef uint8_t HxTexFmt;
 #define HX_TEX_FMT_R8        0
 #define HX_TEX_FMT_RG8       1
@@ -750,7 +756,7 @@ typedef uint8_t HxTexFmt;
 HX_API HxTex HX_CALL hx_make_tex(int w, int h, HxTexFmt fmt, const void* pixels, HxTexFlags flags);
 HX_API HxTex HX_CALL hx_make_tex_cube(int size, HxTexFmt fmt, const void* faces[6], HxTexFlags flags);
 
-/* Load from file (PNG, JPEG, KTX2, DDS, HDR, EXR — embedded stb_image + ktx) */
+/* Load common image formats supported by the bundled stb_image decoder; stored as RGBA8. */
 HX_API HxTex HX_CALL hx_load_tex(const char* path, HxTexFlags flags);
 
 HX_API HxResult HX_CALL hx_drop_tex(HxTex tex);
@@ -760,7 +766,7 @@ HX_API HxResult HX_CALL hx_drop_tex(HxTex tex);
  * ============================================================================ */
 
 HX_API HxPic HX_CALL hx_load_pic(const char* path);  /* Decode to top-left-origin RGBA8 CPU pixels; NULL on failure */
-HX_API HxResult HX_CALL hx_save_pic(HxPic pic, const char* path);  /* Save to PNG */
+HX_API HxResult HX_CALL hx_save_pic(HxPic pic, const char* path);  /* Save RGBA8 pixels to PNG. */
 HX_API void HX_CALL hx_get_pic_size(HxPic pic, int* w, int* h);
 HX_API void HX_CALL hx_get_pic_pixels(HxPic pic, void** out_pixels, size_t* out_stride);  /* RGBA8 */
 HX_API HxResult HX_CALL hx_drop_pic(HxPic pic);
@@ -769,8 +775,7 @@ HX_API HxResult HX_CALL hx_drop_pic(HxPic pic);
  * Shader
  * ============================================================================ */
 
-/* Shaders are precompiled to SPIR-V (Vulkan) or GLSL (GL) and embedded.
- * This API loads from embedded bytecode by name. */
+/* Shader loading is unsupported and returns NULL. */
 HX_API HxShader HX_CALL hx_load_shader(const char* name);  /* e.g. "pbr", "sprite", "skybox" */
 HX_API HxResult HX_CALL hx_drop_shader(HxShader shader);
 
@@ -798,14 +803,13 @@ HX_API HxResult HX_CALL hx_drop_buffer(HxBuffer buf);
  * Draw
  * ============================================================================ */
 
-/* Render a world from a camera into the current window/backbuffer.
- * This is the main draw call for 3D scenes. */
+/* Window/backbuffer drawing is unsupported; use hx_render_headless for software output. */
 HX_API void HX_CALL hx_draw_world(HxWin win, HxWorld world, HxCam cam);
 
-/* Render a single mesh with a skin and transform (for 2D sprites, UI, etc.) */
+/* Window/backbuffer drawing is unsupported. */
 HX_API void HX_CALL hx_draw_mesh(HxWin win, HxMesh mesh, HxSkin skin, const HxMat4* transform, HxCam cam);
 
-/* Begin/end a render pass for custom rendering (advanced) */
+/* Custom window render passes are unsupported. */
 HX_API void HX_CALL hx_begin_pass(HxWin win, HxCam cam);
 HX_API void HX_CALL hx_end_pass(HxWin win);
 
@@ -835,7 +839,7 @@ HX_API void HX_CALL hx_make_quat_identity(HxQuat* q);
 HX_API void HX_CALL hx_mul_quat(const HxQuat* a, const HxQuat* b, HxQuat* out);
 HX_API void HX_CALL hx_make_quat_axis_angle(const HxVec3* axis, float rad, HxQuat* out);
 HX_API void HX_CALL hx_make_quat_euler(float x, float y, float z, HxQuat* out);  /* XYZ order */
-HX_API void HX_API hx_slerp_quat(const HxQuat* a, const HxQuat* b, float t, HxQuat* out);
+HX_API void HX_CALL hx_slerp_quat(const HxQuat* a, const HxQuat* b, float t, HxQuat* out);
 HX_API void HX_CALL hx_rotate_vec_quat(const HxQuat* q, const HxVec3* v, HxVec3* out);
 
 /* ============================================================================
@@ -859,19 +863,20 @@ HX_API bool HX_CALL hx_get_sprite_anim_done(HxSpriteAnim anim);
 HX_API HxResult HX_CALL hx_restart_sprite_anim(HxSpriteAnim anim);
 HX_API HxResult HX_CALL hx_drop_sprite_anim(HxSpriteAnim anim);
 
-HX_API HxAtlas HX_CALL hx_make_atlas(int w, int h);  /* Texture atlas builder */
+HX_API HxAtlas HX_CALL hx_make_atlas(int w, int h);  /* Creates a transparent RGBA8 atlas. */
+/* Copies the texture's top-left w×h pixels to atlas coordinates x,y; name is reserved. */
 HX_API void HX_CALL hx_add_atlas(HxAtlas atlas, const char* name, HxTex tex, int x, int y, int w, int h);
-HX_API HxTex HX_CALL hx_build_atlas(HxAtlas atlas);  /* Returns packed texture */
+HX_API HxTex HX_CALL hx_build_atlas(HxAtlas atlas);  /* Copies registered regions into an RGBA8 texture. */
 HX_API HxResult HX_CALL hx_drop_atlas(HxAtlas atlas);
 
-HX_API HxFont HX_CALL hx_load_font(const char* path, float size);  /* TTF via stb_truetype */
+HX_API HxFont HX_CALL hx_load_font(const char* path, float size);  /* Unsupported; returns NULL. */
 HX_API HxResult HX_CALL hx_drop_font(HxFont font);
 
-/* Text rendering (stub — full in Phase 5) */
+/* Text rendering is unsupported and currently does nothing. */
 HX_API void HX_CALL hx_say(HxWin win, HxFont font, const char* text, float x, float y, float size, HxColor color);
 
 /* ============================================================================
- * Animation (Phase 1 stubs — full in Phase 5/6)
+ * Animation
  * ============================================================================ */
 
 HX_API HxTween HX_CALL hx_make_tween(float from, float to, float duration);  /* Simple float tween */
@@ -879,7 +884,7 @@ HX_API float HX_CALL hx_get_tween_value(HxTween tween);
 HX_API bool HX_CALL hx_get_tween_done(HxTween tween);
 HX_API HxResult HX_CALL hx_drop_tween(HxTween tween);
 
-/* Skeletal animation (stubs) */
+/* Skeletal animation is unsupported; loaders return NULL and playback does nothing. */
 HX_API HxRig HX_CALL hx_load_rig(const char* path);  /* Load rig from glTF */
 HX_API HxClip HX_CALL hx_load_clip(const char* path);  /* Load animation clip */
 HX_API void HX_CALL hx_play_clip(HxRig rig, HxClip clip, bool loop);
@@ -887,7 +892,7 @@ HX_API HxResult HX_CALL hx_drop_rig(HxRig rig);
 HX_API HxResult HX_CALL hx_drop_clip(HxClip clip);
 
 /* ============================================================================
- * Post-Process Effects (Phase 1 stubs — full in Phase 7)
+ * Post-Process Effects (unsupported)
  * ============================================================================ */
 
 typedef uint8_t HxFxType;
@@ -896,15 +901,15 @@ typedef uint8_t HxFxType;
 #define HX_FX_FXAA      2
 #define HX_FX_TONEMAP   3
 
-HX_API HxFx HX_CALL hx_add_fx(HxWin win, HxFxType type);  /* Add post-process effect to window */
+HX_API HxFx HX_CALL hx_add_fx(HxWin win, HxFxType type);  /* Unsupported; returns NULL. */
 HX_API HxResult HX_CALL hx_drop_fx(HxFx fx);
 
 /* ============================================================================
  * Headless / Offscreen Render
  * ============================================================================ */
 
-/* Render a world to an image buffer (RGBA8) without a window.
- * Returns HX_OK on success. */
+/* Render solid or RGBA8-textured triangle meshes to an RGBA8 buffer with the software backend.
+ * PBR lighting, lines and points are not supported by this path. */
 HX_API HxResult HX_CALL hx_render_headless(
     int width, int height,
     HxWorld world, HxCam cam,

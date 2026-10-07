@@ -5,9 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-10-07
 
 ### Added
+- Headless software rendering for solid/textured triangles, RGBA8 atlas composition, scalar tweens, and PNG capture.
+- Windows and Linux release builds with automated tests; macOS is outside the supported release matrix.
+
+### Known limitations
+- PBR, visible-window drawing, shaders, lighting, text, skeletal animation, and post-process effects remain unsupported.
+
+### Changed
+- Set library and package metadata to version 2.0.0; release targets are Windows and Linux.
+
+### Fixed
+- Resolve static component cycles for GNU/Linux linkers and correct CI artifact and NuGet publishing steps.
+- Include the NuGet README and native Windows DLL in the package.
+
 - Initial project structure and CMake build system
 - Public C API (`include/helix.h`) with opaque handles
 - Math library (vec2/3/4, mat4, quat, color)

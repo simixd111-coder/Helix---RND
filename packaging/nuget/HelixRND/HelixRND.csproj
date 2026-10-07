@@ -5,13 +5,14 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <PackageId>HelixRND</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Gimenez Simón</Authors>
     <Description>P/Invoke bindings for Helix RND — a modular C API for building custom game engines, with C++ internals and a software fallback.</Description>
     <PackageProjectUrl>https://github.com/simixd111-coder/Helix---RND</PackageProjectUrl>
     <RepositoryUrl>https://github.com/simixd111-coder/Helix---RND</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>game-engine;graphics;vulkan;gltf;sprite;2d;3d;engine</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -27,6 +28,7 @@
   -->
 
   <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="\" />
     <None Include="runtimes\**\*" Pack="true" PackagePath="runtimes" Visible="false" />
   </ItemGroup>
 

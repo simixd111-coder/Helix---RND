@@ -65,6 +65,15 @@ bool hx_resource_unregister(void* resource) {
     return false;
 }
 
+bool hx_resource_is_registered(void* resource) {
+    if (!resource) return false;
+    std::lock_guard<std::mutex> lock(g_resource_mutex);
+    for (HxResourceNode* node = g_resources; node; node = node->next) {
+        if (node->resource == resource) return true;
+    }
+    return false;
+}
+
 bool hx_resource_resize(void* resource, size_t cpu_bytes, size_t gpu_bytes) {
     if (!resource) return false;
 

@@ -86,6 +86,7 @@ void hx_win_platform_set_fullscreen(HxWin win, bool fullscreen);
 bool hx_headless_window_create(HxWin win);
 void hx_headless_window_destroy(HxWin win);
 void hx_headless_window_set_size(HxWin win, int width, int height);
+HxResult hx_headless_get_pixels(HxWin win, void** out_pixels, size_t* out_stride, int* out_w, int* out_h);
 
 // Input state (input.cpp)
 void hx_input_reset(void);

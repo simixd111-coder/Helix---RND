@@ -1,5 +1,6 @@
 // ecs.cpp — Generic sparse-set ECS for custom engine/game logic
 #include "helix.h"
+#include "render_internal.h"
 #include "resource_internal.h"
 #include <algorithm>
 #include <cstddef>
@@ -28,6 +29,7 @@ struct HxWorldImpl {
     std::vector<HxEntitySlot> slots;
     std::vector<uint32_t> free_slots;
     std::vector<HxComponentStorage> components;
+    std::vector<HxWorldMeshItem> draw_items;
 };
 
 static uint32_t hx_entity_slot_index(HxEntity entity) {
@@ -61,6 +63,7 @@ static size_t hx_component_bytes(const HxWorldImpl& world) {
     bytes += world.slots.capacity() * sizeof(HxEntitySlot);
     bytes += world.free_slots.capacity() * sizeof(uint32_t);
     bytes += world.components.capacity() * sizeof(HxComponentStorage);
+    bytes += world.draw_items.capacity() * sizeof(HxWorldMeshItem);
     for (const HxComponentStorage& component : world.components) {
         bytes += component.name.capacity();
         bytes += component.entities.capacity() * sizeof(HxEntity);
@@ -285,4 +288,32 @@ HX_API HxResult HX_CALL hx_for_each_component(
         if (data) callback(world, entity, data, user);
     }
     return HX_OK;
+}
+
+HX_API void HX_CALL hx_add_mesh(HxWorld world, HxMesh mesh, HxSkin skin, const HxMat4* transform) {
+    if (!world || !mesh) return;
+    HxWorldMeshItem item{};
+    item.mesh = mesh;
+    item.skin = skin;
+    if (transform) item.transform = *transform;
+    else hx_make_mat4_identity(&item.transform);
+    try { world->draw_items.push_back(item); }
+    catch (...) { return; }
+    hx_world_refresh_memory(world);
+}
+
+HX_API void HX_CALL hx_clear_world(HxWorld world) {
+    if (!world) return;
+    world->draw_items.clear();
+    hx_world_refresh_memory(world);
+}
+
+size_t hx_world_mesh_count(HxWorld world) {
+    return world ? world->draw_items.size() : 0;
+}
+
+bool hx_world_mesh_get(HxWorld world, size_t index, HxWorldMeshItem* out_item) {
+    if (!world || !out_item || index >= world->draw_items.size()) return false;
+    *out_item = world->draw_items[index];
+    return true;
 }

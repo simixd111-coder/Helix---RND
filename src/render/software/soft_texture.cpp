@@ -1,3 +1,2 @@
-// soft_texture.cpp — Software texture (stub)
-#include "helix.h"
-// Phase 1: no texture support in software renderer
+// Texture storage lives in core/texture.cpp; sampling is performed by soft_renderer.cpp.
+#include "core/render_internal.h"

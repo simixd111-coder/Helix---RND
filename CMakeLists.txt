@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(helix-rnd
-    VERSION 1.0.0
+    VERSION 2.0.0
     LANGUAGES CXX C
     DESCRIPTION "Helix RND — 2D/3D render engine with multi-language API"
     HOMEPAGE_URL "https://github.com/helix-rnd/helix"
@@ -42,6 +42,10 @@ option(HX_BACKEND_OPENGL      "Enable OpenGL backend (Phase 4+)" OFF)
 option(HX_BACKEND_METAL       "Enable Metal backend (Phase 8+)" OFF)
 option(HX_BACKEND_SOFTWARE    "Enable software rasterizer backend" ON)
 
+if(HX_ENABLE_MSAN AND (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+    message(FATAL_ERROR "HX_ENABLE_MSAN requires Clang for both C and C++.")
+endif()
+
 # Platform detection
 if(WIN32)
     set(HX_PLATFORM_WINDOWS 1)
@@ -55,6 +59,21 @@ elseif(UNIX AND NOT ANDROID)
 elseif(EMSCRIPTEN)
     set(HX_PLATFORM_WASM 1)
     add_definitions(-DHX_PLATFORM_WASM=1)
+endif()
+
+# -----------------------------------------------------------------------------
+# MSVC Runtime Library (CMake >= 3.15, policy CMP0091 NEW)
+#   HX_STATIC_RUNTIME=ON  -> static CRT  (/MT Release, /MTd Debug)
+#   HX_STATIC_RUNTIME=OFF -> dynamic CRT (/MD Release, /MDd Debug)
+# Must be set before any add_library()/add_executable() call so that every
+# target (libs, tests, demo) links against the same CRT consistently.
+# -----------------------------------------------------------------------------
+if(MSVC)
+    if(HX_STATIC_RUNTIME)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
 endif()
 
 # -----------------------------------------------------------------------------
@@ -82,24 +101,13 @@ function(hx_apply_compile_options target)
         >
     )
 
-    # Runtime library selection
-    # For shared libraries on Windows, we MUST use dynamic runtime (/MD)
-    # because static runtime (/MT) causes linking errors with CRT symbols.
-    # For static libraries, we can use static runtime (/MT) if HX_STATIC_RUNTIME is ON.
-    if(WIN32)
-        get_target_property(target_type ${target} TYPE)
-        if(target_type STREQUAL "SHARED_LIBRARY")
-            # Shared library: use dynamic runtime
-            target_compile_options(${target} PRIVATE /MD)
-        elseif(HX_STATIC_RUNTIME)
-            # Static library with static runtime
-            target_compile_options(${target} PRIVATE /MT)
-            target_link_options(${target} PRIVATE /NODEFAULTLIB:libcmt.lib)
-        else()
-            # Static library with dynamic runtime
-            target_compile_options(${target} PRIVATE /MD)
-        endif()
-    elseif(HX_STATIC_RUNTIME AND NOT WIN32)
+    # Runtime library selection on Windows is handled globally through
+    # CMAKE_MSVC_RUNTIME_LIBRARY (see above). It is config-aware
+    # (/MT|/MTd vs /MD|/MDd) and applied consistently to every target.
+    # NOTE: the old manual /MT plus /NODEFAULTLIB:libcmt.lib combination
+    #       removed the CRT entirely and broke linking of every Windows
+    #       executable (LNK2019/LNK1120 on CRT symbols).
+    if(HX_STATIC_RUNTIME AND NOT WIN32)
         # Non-Windows static runtime
         target_compile_options(${target} PRIVATE -static-libstdc++ -static-libgcc)
         target_link_options(${target} PRIVATE -static-libstdc++ -static-libgcc -pthread)
@@ -119,11 +127,10 @@ function(hx_apply_compile_options target)
         target_link_options(${target} PRIVATE -fsanitize=memory -pie)
     endif()
 
-    # Debug symbols
-    target_compile_options(${target} PRIVATE
-        $<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:MSVC>:/Zi>/Zi>
-        $<$<CONFIG:RelWithDebInfo>:$<$<CXX_COMPILER_ID:MSVC>:/Zi>/Zi>
-    )
+    # Debug symbols: no manual flags needed. MSVC gets /Zi automatically in
+    # Debug and RelWithDebInfo (generator default), GCC/Clang get -g via
+    # CMAKE_BUILD_TYPE. (The previous generator expression here was malformed
+    # and emitted a literal "/Zi/Zi" into every MSVC target.)
 endfunction()
 
 # -----------------------------------------------------------------------------
@@ -161,9 +168,20 @@ set(HELIX_CORE_SOURCES
     src/core/camera.cpp
     src/core/picture.cpp
     src/core/model.cpp
+    src/core/ecs.cpp
+    src/core/mesh.cpp
+    src/core/texture.cpp
+    src/core/tween.cpp
+    src/core/unsupported_api.cpp
+    src/core/png.cpp
+    src/core/atlas.cpp
     src/core/sprite.cpp
+    src/core/gpu_select.cpp
     src/math/math.cpp
 )
+if(NOT HX_BACKEND_SOFTWARE)
+    list(APPEND HELIX_CORE_SOURCES src/core/headless_stub.cpp)
+endif()
 if(HX_BACKEND_VULKAN)
     list(APPEND HELIX_CORE_SOURCES
         src/core/gpu_vulkan.cpp
@@ -185,20 +203,20 @@ if(WIN32)
     )
 elseif(APPLE)
     list(APPEND HELIX_PLATFORM_SOURCES
-        src/platform/cocoa/cocoa_window.mm
-        src/platform/cocoa/cocoa_input.mm
+        src/platform/unsupported/native_window.cpp
+    )
+elseif(EMSCRIPTEN)
+    list(APPEND HELIX_PLATFORM_SOURCES
+        src/platform/unsupported/native_window.cpp
     )
 elseif(UNIX AND NOT ANDROID)
     list(APPEND HELIX_PLATFORM_SOURCES
         src/platform/x11/x11_window.cpp
         src/platform/x11/x11_input.cpp
-        src/platform/wayland/wayland_window.cpp
-        src/platform/wayland/wayland_input.cpp
     )
-elseif(EMSCRIPTEN)
+else()
     list(APPEND HELIX_PLATFORM_SOURCES
-        src/platform/wasm/wasm_window.cpp
-        src/platform/wasm/wasm_input.cpp
+        src/platform/unsupported/native_window.cpp
     )
 endif()
 list(APPEND HELIX_PLATFORM_SOURCES
@@ -224,8 +242,17 @@ if(HX_BUILD_SHARED)
         ${HELIX_CORE_SOURCES}
         ${HELIX_PLATFORM_SOURCES}
     )
+    # Shared libraries must use the dynamic CRT (/MD, /MDd in Debug) even
+    # when HX_STATIC_RUNTIME=ON: a static CRT inside a DLL gives each module
+    # its own CRT state and is unsupported.
+    if(MSVC)
+        set_target_properties(helix PROPERTIES
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+        )
+    endif()
     if(HX_BACKEND_SOFTWARE)
         target_sources(helix PRIVATE ${HELIX_RENDER_SOFTWARE_SOURCES})
+        target_compile_definitions(helix PRIVATE HX_HAS_SOFTWARE=1)
     endif()
 
     target_include_directories(helix
@@ -269,6 +296,9 @@ else()
 # Helix Core Library (static component)
 # -----------------------------------------------------------------------------
 add_library(helix-core STATIC ${HELIX_CORE_SOURCES})
+if(HX_BACKEND_SOFTWARE)
+    target_compile_definitions(helix-core PRIVATE HX_HAS_SOFTWARE=1)
+endif()
 
 if(HX_BACKEND_VULKAN)
     target_include_directories(helix-core SYSTEM PRIVATE
@@ -332,6 +362,15 @@ if(HX_BACKEND_SOFTWARE)
     hx_apply_compile_options(helix-render-software)
 endif()
 
+# These static components call into one another (core exposes headless render/capture
+# APIs, while platform and renderer use core resource APIs). Declare the full cycle so
+# GNU-like linkers rescan the archives when clients link the `helix` interface target.
+if(HX_BACKEND_SOFTWARE)
+    target_link_libraries(helix-core PRIVATE helix-platform helix-render-software)
+else()
+    target_link_libraries(helix-core PRIVATE helix-platform)
+endif()
+
 # -----------------------------------------------------------------------------
 # Main Helix Library (combines all) - INTERFACE library for header-only distribution
 # -----------------------------------------------------------------------------
@@ -376,20 +415,39 @@ endif()
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
+function(hx_enable_test_assertions target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${target} PRIVATE -UNDEBUG)
+    endif()
+endfunction()
 if(HX_BUILD_TESTS)
     enable_testing()
 
-    foreach(test_name IN ITEMS test_math test_handles test_error test_platform_stub test_pic test_resources test_gpu test_gltf test_sprite)
+    set(HELIX_TESTS test_math test_handles test_pic test_resources test_gpu test_gltf test_sprite test_tween test_api_capabilities)
+    if(HX_BACKEND_SOFTWARE)
+        list(APPEND HELIX_TESTS test_error test_platform_stub test_ecs test_soft_renderer test_scene_render test_atlas)
+    endif()
+    foreach(test_name IN LISTS HELIX_TESTS)
         add_executable(${test_name} tests/${test_name}.cpp)
         target_link_libraries(${test_name} PRIVATE helix)
         hx_apply_compile_options(${test_name})
+        hx_enable_test_assertions(${test_name})
+        if(test_name STREQUAL "test_resources" AND HX_BACKEND_SOFTWARE)
+            target_compile_definitions(${test_name} PRIVATE HX_TEST_SOFTWARE=1)
+        endif()
         add_test(NAME ${test_name} COMMAND ${test_name})
     endforeach()
 
-    add_executable(test_c_api tests/test_c_api.c)
-    target_link_libraries(test_c_api PRIVATE helix)
-    set_target_properties(test_c_api PROPERTIES LINKER_LANGUAGE CXX)
-    add_test(NAME test_c_api COMMAND test_c_api)
+    if(HX_BACKEND_SOFTWARE)
+        add_executable(test_c_api tests/test_c_api.c)
+        target_link_libraries(test_c_api PRIVATE helix)
+        set_target_properties(test_c_api PROPERTIES LINKER_LANGUAGE CXX)
+        hx_apply_compile_options(test_c_api)
+        hx_enable_test_assertions(test_c_api)
+        add_test(NAME test_c_api COMMAND test_c_api)
+    endif()
 
     # Headless render test (image comparison)
     if(HX_BUILD_HEADLESS_DEMO)

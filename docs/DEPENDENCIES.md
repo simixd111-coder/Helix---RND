@@ -1,6 +1,6 @@
 # Helix RND — Dependencies & Licenses
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Policy:** Third-party code is vendored. The software backend has no GPU runtime requirement; Vulkan mode dynamically loads the operating-system Vulkan loader and a compatible driver.
 
 ---
@@ -36,8 +36,7 @@
 | Platform | Packages | Purpose |
 |----------|----------|---------|
 | Windows | Visual Studio 2022 + Windows SDK | Compiler, linker, headers |
-| Linux | `build-essential`, `ninja-build`, `libx11-dev`, `libwayland-dev`, `libxkbcommon-dev` | Compiler, X11/Wayland headers |
-| macOS | Xcode Command Line Tools, `ninja`, `cmake` (via Homebrew) | Compiler, CMake, Ninja |
+| Linux | `build-essential`, `ninja-build`, `libx11-dev` | Compiler, X11 headers |
 | WASM | Emscripten SDK | WASM toolchain |
 
 ---

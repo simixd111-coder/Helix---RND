@@ -15,9 +15,9 @@ Este documento explica cómo publicar Helix RND en los tres canales de distribuc
 - Cuenta en **GitHub** con permisos de push al repo `simixd111-coder/Helix---RND`
 - Cuenta en **Chocolatey Community** (https://community.chocolatey.org)
 - Cuenta en **NuGet.org** (https://www.nuget.org)
-- **GitHub Personal Access Token** con scopes: `repo`, `workflow`, `write:packages`
 - **Chocolatey API Key** (desde https://community.chocolatey.org/account/apikey)
-- **NuGet API Key** (desde https://www.nuget.org/account/apikeys)
+- En NuGet.org, Trusted Publishing configurado para `simixd111-coder/Helix---RND` y `.github/workflows/release.yml`; crear el secreto GitHub `NUGET_USER` con el nombre de usuario NuGet. ([guía oficial](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing))
+- Para publicar NuGet manualmente desde local, una **NuGet API Key** (desde https://www.nuget.org/account/apikeys).
 
 ---
 
@@ -77,7 +77,7 @@ build-shared/Release/helix.lib   # import library
 El script de Chocolatey espera un ZIP con esta estructura:
 
 ```
-helix-rnd-1.0.0-windows-x64/
+helix-rnd-2.0.0-windows-x64/
 ├── include/
 │   └── helix.h
 ├── lib/
@@ -90,7 +90,7 @@ helix-rnd-1.0.0-windows-x64/
 ```
 
 ```powershell
-$version = "1.0.0"
+$version = "2.0.0"
 $zipName = "helix-rnd-$version-windows-x64"
 $staging = "pkg/$zipName"
 
@@ -132,12 +132,12 @@ El workflow `.github/workflows/release.yml` hace esto automáticamente al pushea
 
 ```powershell
 # Crear y pushear el tag
-git tag -a v1.0.0 -m "Release 1.0.0"
-git push origin v1.0.0
+git tag -a v2.0.0 -m "Release 2.0.0"
+git push origin v2.0.0
 ```
 
 Esto disparará el workflow que:
-1. Compila en Windows/Linux/macOS
+1. Compila en Windows/Linux
 2. Corre los tests
 3. Arma los ZIPs con headers + libs
 4. Calcula SHA256
@@ -156,12 +156,14 @@ cd packaging/chocolatey
 choco pack helix-rnd.nuspec
 ```
 
-Esto genera `helix-rnd.1.0.0.nupkg` en el directorio actual.
+Esto genera `helix-rnd.2.0.0.nupkg` en el directorio actual.
+
+El instalador verifica el ZIP con el asset `.sha256` publicado junto al ZIP de Windows en GitHub Releases. Publica ambos assets antes de enviar el paquete a Chocolatey.
 
 ### 3.2 Subir a Chocolatey Community
 
 ```powershell
-choco push helix-rnd.1.0.0.nupkg --api-key TU_CHAVE_API --source https://push.chocolatey.org/
+choco push helix-rnd.2.0.0.nupkg --api-key TU_CHAVE_API --source https://push.chocolatey.org/
 ```
 
 > La primera versión pasa por **revisión manual** (puede tardar horas/días). Las actualizaciones posteriores son automáticas.
@@ -169,7 +171,7 @@ choco push helix-rnd.1.0.0.nupkg --api-key TU_CHAVE_API --source https://push.ch
 ### 3.3 Verificar
 
 ```powershell
-choco install helix-rnd --version 1.0.0 --source https://community.chocolatey.org/api/v2
+choco install helix-rnd --version 2.0.0 --source https://community.chocolatey.org/api/v2
 ```
 
 ---
@@ -198,18 +200,18 @@ Copy-Item "C:\Users\Simon\Desktop\Helix RND\build-shared\Release\helix.dll" "$ru
 dotnet pack -c Release -o ../nupkg
 ```
 
-Esto genera `HelixRND.1.0.0.nupkg` en `packaging/nuget/nupkg/`.
+Esto genera `HelixRND.2.0.0.nupkg` en `packaging/nuget/nupkg/`.
 
 ### 4.3 Subir a NuGet.org
 
 ```powershell
-dotnet nuget push ../nupkg/HelixRND.1.0.0.nupkg --api-key TU_NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+dotnet nuget push ../nupkg/HelixRND.2.0.0.nupkg --api-key TU_NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 ```
 
 ### 4.4 Verificar
 
 ```powershell
-dotnet add package HelixRND --version 1.0.0
+dotnet add package HelixRND --version 2.0.0
 ```
 
 ---
@@ -225,7 +227,7 @@ include(FetchContent)
 FetchContent_Declare(
   helix
   GIT_REPOSITORY https://github.com/simixd111-coder/Helix---RND.git
-  GIT_TAG        v1.0.0
+  GIT_TAG        v2.0.0
 )
 
 FetchContent_MakeAvailable(helix)
@@ -268,7 +270,7 @@ Ejemplo de snippet para el workflow:
   run: |
     # ... (pasos 1.3 y 1.4 de arriba)
     choco pack packaging/chocolatey/helix-rnd.nuspec
-    choco push helix-rnd.1.0.0.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
+    choco push helix-rnd.2.0.0.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
 
 - name: Package NuGet
   if: runner.os == 'Windows'
@@ -278,7 +280,7 @@ Ejemplo de snippet para el workflow:
     New-Item -ItemType Directory -Force -Path $runtimes
     Copy-Item build-shared/Release/helix.dll "$runtimes/"
     dotnet pack packaging/nuget/HelixRND -c Release -o packaging/nuget/nupkg
-    dotnet nuget push packaging/nuget/nupkg/HelixRND.1.0.0.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+    dotnet nuget push packaging/nuget/nupkg/HelixRND.2.0.0.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
   env:
     CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
@@ -291,7 +293,7 @@ Ejemplo de snippet para el workflow:
 - [ ] `git tag -a vX.Y.Z -m "Release X.Y.Z"` y `git push origin vX.Y.Z`
 - [ ] Workflow de release pasa (✅ en Actions)
 - [ ] GitHub Release creado con assets (ZIPs + SHA256)
-- [ ] SHA256 actualizado en `packaging/chocolatey/helix-rnd.nuspec`
+- [ ] ZIP de Windows y su asset `.sha256` publicados juntos en GitHub Releases
 - [ ] `choco pack` + `choco push` → Chocolatey Community
 - [ ] `helix.dll` copiada a `runtimes/win-x64/native/`
 - [ ] `dotnet pack` + `dotnet nuget push` → NuGet.org
@@ -303,7 +305,7 @@ Ejemplo de snippet para el workflow:
 
 | Problema | Solución |
 |----------|----------|
-| `choco push` falla con "checksum mismatch" | Recalcula SHA256 del ZIP y actualiza el nuspec |
+| Chocolatey falla con "checksum mismatch" | Regenera el asset `.sha256` a partir del ZIP y vuelve a publicar ambos assets |
 | `dotnet nuget push` falla con "version already exists" | Incrementa la versión en `HelixRND.csproj` (`<Version>`) |
 | C# `DllImport` no encuentra `helix.dll` | Verifica que `helix.dll` esté en `runtimes/win-x64/native/` dentro del nupkg |
 | Chocolatey revisión tarda mucho | Es normal en la primera versión; las siguientes son automáticas |

@@ -1,5 +1,5 @@
 # Helix RND — GitHub Actions CI
-# Phase 1: Build and test on Windows, Linux, macOS
+# Build and test supported platforms: Windows and Linux
 
 name: CI
 
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest]
         include:
           - os: windows-latest
             artifact_name: helix-windows
@@ -28,10 +28,6 @@ jobs:
           - os: ubuntu-latest
             artifact_name: helix-linux
             demo_exe: helix_demo_headless
-          - os: macos-latest
-            artifact_name: helix-macos
-            demo_exe: helix_demo_headless
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,12 +36,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libx11-dev libwayland-dev libxkbcommon-dev
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install ninja cmake
+          sudo apt-get install -y ninja-build libx11-dev
 
       - name: Configure CMake
         run: |
@@ -56,8 +47,7 @@ jobs:
             -DHX_BUILD_HEADLESS_DEMO=ON \
             -DHX_BACKEND_SOFTWARE=ON \
             -DHX_BACKEND_VULKAN=OFF \
-            -DHX_BACKEND_OPENGL=OFF \
-            -DHX_BACKEND_METAL=OFF
+            -DHX_BACKEND_OPENGL=OFF
 
       - name: Build
         run: cmake --build build --config ${BUILD_TYPE} --parallel
@@ -101,17 +91,6 @@ jobs:
             build/libhelix-render-software.a
             build/helix_demo_headless
 
-      - name: Upload Binaries (macOS)
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}-bin
-          path: |
-            build/libhelix-core.a
-            build/libhelix-platform.a
-            build/libhelix-render-software.a
-            build/helix_demo_headless
-
   # Sanitizer builds (Linux only)
   sanitizers:
     name: Sanitizers (Linux)
@@ -123,8 +102,6 @@ jobs:
             cmake_option: ASAN
           - sanitizer: undefined
             cmake_option: UBSAN
-          - sanitizer: memory
-            cmake_option: MSAN
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -132,7 +109,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libx11-dev libwayland-dev libxkbcommon-dev
+          sudo apt-get install -y ninja-build libx11-dev
 
       - name: Configure (${{ matrix.sanitizer }})
         run: |
@@ -193,12 +170,12 @@ jobs:
 
       - name: Verify binary size
         run: |
-          ls -lh build/libhelix.a build/helix_demo_headless
+          ls -lh build/libhelix-core.a build/libhelix-platform.a build/libhelix-render-software.a build/helix_demo_headless
 
       - name: Create Release Package
         run: |
           mkdir -p release
-          cp build/libhelix.a release/
+          cp build/libhelix-core.a build/libhelix-platform.a build/libhelix-render-software.a release/
           cp build/helix_demo_headless release/
           cp include/helix.h release/
           cp LICENSE THIRD_PARTY_LICENSES.txt release/
