@@ -8,6 +8,12 @@ static int fail_test(int code)
     return code;
 }
 
+static void checkpoint(const char* operation)
+{
+    std::fprintf(stderr, "test_resources: %s\n", operation);
+    std::fflush(stderr);
+}
+
 #if defined(HX_TEST_SOFTWARE)
 bool hx_soft_init(int width, int height);
 void hx_soft_get_pixels(void** out_pixels, size_t* out_stride, int* out_width, int* out_height);
@@ -15,10 +21,12 @@ void hx_soft_get_pixels(void** out_pixels, size_t* out_stride, int* out_width, i
 
 int main()
 {
+    checkpoint("start");
     HxCfg gpu_config = {};
     gpu_config.gpu = HX_GPU_VK;
     gpu_config.gpu_preference = HX_GPU_PREFERENCE_HIGH_PERFORMANCE;
     gpu_config.gpu_device_index = HX_GPU_DEVICE_DEFAULT;
+    checkpoint("boot Vulkan backend");
     HxResult gpu_result = hx_boot(&gpu_config);
     if (gpu_result == HX_OK)
     {
@@ -64,13 +72,16 @@ int main()
     config.headless = true;
     config.app_name = "resource-test";
 #if defined(HX_TEST_SOFTWARE)
+    checkpoint("boot software backend");
     if (hx_boot(&config) != HX_OK)
         return fail_test(12);
 
+    checkpoint("create camera and headless window");
     HxCam camera = hx_make_cam3d();
     HxWin window = hx_make_win(16, 8, "resource-test", HX_WIN_HEADLESS);
     if (!camera || !window)
         return fail_test(13);
+    checkpoint("initialize software renderer");
     if (!hx_soft_init(16, 8))
         return fail_test(14);
 
@@ -80,6 +91,7 @@ int main()
         return fail_test(15);
 
     const size_t initial_cpu_bytes = stats.cpu_bytes;
+    checkpoint("resize headless window");
     hx_set_win_size(window, 32, 16);
     hx_get_memory_stats(&stats);
     int window_width = 0;
@@ -91,6 +103,7 @@ int main()
         return fail_test(17);
     const size_t resized_cpu_bytes = stats.cpu_bytes;
     const char* capture_path = "helix_test_capture.png";
+    checkpoint("capture PNG");
     if (hx_snap_win(window, capture_path) != HX_OK)
         return fail_test(25);
     std::remove(capture_path);
@@ -107,6 +120,7 @@ int main()
     if (stats.live_resources != 2)
         return fail_test(21);
 
+    checkpoint("shutdown resources");
     hx_quit();
     hx_get_memory_stats(&stats);
     if (stats.live_resources != 0 || stats.cpu_bytes != 0 || stats.gpu_bytes != 0)

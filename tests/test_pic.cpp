@@ -9,6 +9,12 @@ static int fail_test(int code)
     return code;
 }
 
+static void checkpoint(const char* operation)
+{
+    std::fprintf(stderr, "test_pic: %s\n", operation);
+    std::fflush(stderr);
+}
+
 static bool write_test_ppm(const char* path)
 {
     FILE* file = fopen(path, "wb");
@@ -21,8 +27,11 @@ static bool write_test_ppm(const char* path)
 
 int main()
 {
+    checkpoint("start");
+    checkpoint("load null path");
     if (hx_load_pic(NULL) != NULL)
         return fail_test(1);
+    checkpoint("load missing path");
     if (hx_load_pic("helix_missing_image.png") != NULL)
         return fail_test(2);
 
@@ -30,6 +39,7 @@ int main()
     if (!write_test_ppm(path))
         return fail_test(3);
 
+    checkpoint("load PPM");
     HxPic pic = hx_load_pic(path);
     remove(path);
     if (!pic)
@@ -51,8 +61,10 @@ int main()
     if (memcmp(raw_pixels, expected, sizeof(expected)) != 0)
         return fail_test(7);
     const char* png_path = "helix_test_pic.png";
+    checkpoint("save PNG");
     if (hx_save_pic(pic, png_path) != HX_OK)
         return fail_test(8);
+    checkpoint("load PNG");
     HxPic png = hx_load_pic(png_path);
     remove(png_path);
     if (!png)
@@ -62,8 +74,10 @@ int main()
     hx_get_pic_pixels(png, &png_pixels, &png_stride);
     if (!png_pixels || png_stride != sizeof(expected) || memcmp(png_pixels, expected, sizeof(expected)) != 0)
         return fail_test(10);
+    checkpoint("drop PNG resource");
     if (hx_drop_pic(png) != HX_OK)
         return fail_test(11);
+    checkpoint("drop PPM resource");
     if (hx_drop_pic(pic) != HX_OK)
         return fail_test(12);
 
