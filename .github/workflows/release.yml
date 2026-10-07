@@ -71,7 +71,7 @@ jobs:
 
       - name: Run Tests
         shell: bash
-        run: ctest --test-dir build --output-on-failure --parallel
+        run: ctest --test-dir build --output-on-failure --parallel 1
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
