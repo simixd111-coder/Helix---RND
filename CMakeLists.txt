@@ -4,7 +4,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 project(helix-rnd
-    VERSION 2.5.0
+    VERSION 3.0.0
     LANGUAGES CXX C
     DESCRIPTION "Helix RND — 2D/3D render engine with multi-language API"
     HOMEPAGE_URL "https://github.com/helix-rnd/helix"

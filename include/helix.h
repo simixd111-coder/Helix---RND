@@ -1,6 +1,6 @@
 /*
  * helix.h — Helix RND Public C API (Stable ABI)
- * Version: 2.5.0
+ * Version: 3.0.0
  * License: MIT
  * SPDX-License-Identifier: MIT
  *
@@ -25,10 +25,10 @@ extern "C" {
  * Version & Platform Detection
  * ============================================================================ */
 
-#define HX_VERSION_MAJOR 2
-#define HX_VERSION_MINOR 5
+#define HX_VERSION_MAJOR 3
+#define HX_VERSION_MINOR 0
 #define HX_VERSION_PATCH 0
-#define HX_VERSION_STRING "2.5.0"
+#define HX_VERSION_STRING "3.0.0"
 
 /* Platform */
 #if defined(_WIN32) || defined(__CYGWIN__)

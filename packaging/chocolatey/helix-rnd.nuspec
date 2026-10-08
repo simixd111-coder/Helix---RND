@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>helix-rnd</id>
-    <version>2.5.0</version>
+    <version>3.0.0</version>
     <title>Helix RND</title>
     <authors>Gimenez Simón</authors>
     <owners>Gimenez Simón</owners>
@@ -12,6 +12,6 @@
     <licenseUrl>https://raw.githubusercontent.com/simixd111-coder/Helix---RND/main/LICENSE</licenseUrl>
     <copyright>Copyright (c) 2026 Gimenez Simón</copyright>
     <tags>game-engine graphics vulkan gltf sprite 2d 3d engine</tags>
-    <releaseNotes>https://github.com/simixd111-coder/Helix---RND/releases/tag/v2.5.0</releaseNotes>
+    <releaseNotes>https://github.com/simixd111-coder/Helix---RND/releases/tag/v3.0.0</releaseNotes>
   </metadata>
 </package>
