@@ -130,6 +130,56 @@ jobs:
             build/libhelix-render-software.a
             build/helix_demo_headless
 
+  # Wayland build & test (Linux only)
+  build-test-wayland:
+    name: Build & Test Wayland (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Wayland dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libwayland-dev libwayland-cursor-dev wayland-protocols
+
+      - name: Configure CMake (Wayland)
+        shell: bash
+        run: |
+          cmake -B build -G "${CMAKE_GENERATOR}" \
+            -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+            -DHX_STATIC_RUNTIME=ON \
+            -DHX_BUILD_TESTS=ON \
+            -DHX_BUILD_HEADLESS_DEMO=ON \
+            -DHX_BACKEND_SOFTWARE=ON \
+            -DHX_BACKEND_VULKAN=OFF \
+            -DHX_BACKEND_OPENGL=OFF \
+            -DHX_PLATFORM_WAYLAND=ON \
+            -DHX_TEST_PNG_DIAGNOSTICS=ON
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config ${BUILD_TYPE} --parallel
+
+      - name: Run Unit Tests
+        shell: bash
+        run: |
+          cd build
+          ctest --output-on-failure --parallel 1
+
+      - name: Run Headless Demo
+        shell: bash
+        run: |
+          cd build
+          ./helix_demo_headless
+          ls -la triangle.png
+
+      - name: Upload Demo Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: helix-linux-wayland-triangle
+          path: build/triangle.png
+
   # Sanitizer builds (Linux only)
   sanitizers:
     name: Sanitizers (Linux)
