@@ -6,70 +6,17 @@
 #include <string.h>
 #include <math.h>
 
-// -----------------------------------------------------------------------------
-// PNG Writer (minimal, no external deps)
-// -----------------------------------------------------------------------------
-static uint32_t hx_to_be32(uint32_t value) {
-    return ((value & 0x000000FFu) << 24) |
-           ((value & 0x0000FF00u) << 8) |
-           ((value & 0x00FF0000u) >> 8) |
-           ((value & 0xFF000000u) >> 24);
-}
-
-static void write_png(const char* path, int w, int h, const void* pixels, size_t stride) {
-    FILE* f = fopen(path, "wb");
-    if (!f) { fprintf(stderr, "Failed to open %s\n", path); return; }
-
-    // PNG signature
-    fputc(0x89, f); fputc('P', f); fputc('N', f); fputc('G', f);
-    fputc(0x0D, f); fputc(0x0A, f); fputc(0x1A, f); fputc(0x0A, f);
-
-    // Helper: write chunk
-    auto write_chunk = [&](const char* type, const void* data, size_t len) {
-        uint32_t be_len = hx_to_be32(static_cast<uint32_t>(len));
-        fwrite(&be_len, 4, 1, f);
-        fwrite(type, 4, 1, f);
-        if (data && len) fwrite(data, 1, len, f);
-        // CRC (simplified: skip for demo, real impl would compute)
-        uint32_t crc = 0;
-        fwrite(&crc, 4, 1, f);
-    };
-
-    // IHDR
-    struct { uint32_t w, h; uint8_t depth, color, comp, filter, interlace; } ihdr;
-    ihdr.w = hx_to_be32(static_cast<uint32_t>(w));
-    ihdr.h = hx_to_be32(static_cast<uint32_t>(h));
-    ihdr.depth = 8;
-    ihdr.color = 6; // RGBA
-    ihdr.comp = 0;
-    ihdr.filter = 0;
-    ihdr.interlace = 0;
-    write_chunk("IHDR", &ihdr, 13);
-
-    // IDAT (uncompressed, each row with filter byte 0)
-    size_t row_bytes = w * 4 + 1;
-    size_t idat_size = row_bytes * h;
-    uint8_t* idat = (uint8_t*)malloc(idat_size);
-    const uint8_t* src = (const uint8_t*)pixels;
-    for (int y = 0; y < h; ++y) {
-        idat[y * row_bytes] = 0; // filter type 0
-        memcpy(idat + y * row_bytes + 1, src + y * stride, w * 4);
-    }
-    write_chunk("IDAT", idat, idat_size);
-    free(idat);
-
-    // IEND
-    write_chunk("IEND", NULL, 0);
-
-    fclose(f);
-    printf("Wrote %s (%dx%d)\n", path, w, h);
-}
+// Internal core PNG writer (valid PNG: zlib stored blocks + CRC32 chunks).
+// Declared extern; the demo links the static core library.
+extern bool hx_png_write_rgba8(const char* path, int width, int height, const void* pixels, size_t stride);
 
 // -----------------------------------------------------------------------------
 // Demo
 // -----------------------------------------------------------------------------
-int main(int argc, char** argv) {
-    (void)argc; (void)argv;
+int main(int argc, char** argv)
+{
+    (void) argc;
+    (void) argv;
 
     printf("Helix RND — Headless Triangle Demo (Phase 1)\n");
     printf("=============================================\n\n");
@@ -80,7 +27,8 @@ int main(int argc, char** argv) {
     cfg.headless = true;
     cfg.app_name = "headless_triangle";
     HxResult res = hx_boot(&cfg);
-    if (res != HX_OK) {
+    if (res != HX_OK)
+    {
         fprintf(stderr, "hx_boot failed: %s\n", hx_last_error());
         return 1;
     }
@@ -88,74 +36,131 @@ int main(int argc, char** argv) {
 
     // Create headless window (320x240)
     HxWin win = hx_make_win(320, 240, "Headless Triangle", HX_WIN_HEADLESS);
-    if (!win) {
+    if (!win)
+    {
         fprintf(stderr, "hx_make_win failed: %s\n", hx_last_error());
         hx_quit();
         return 1;
     }
 
-    // Triangle vertices (NDC: -1..1)
-    HxVec3 positions[3] = {
-        { 0.0f,  0.5f, 0.0f },  // Top
-        {-0.5f, -0.5f, 0.0f },  // Bottom-left
-        { 0.5f, -0.5f, 0.0f },  // Bottom-right
-    };
-    HxVec3 colors[3] = {
-        { 1.0f, 0.0f, 0.0f },  // Red
-        { 0.0f, 1.0f, 0.0f },  // Green
-        { 0.0f, 0.0f, 1.0f },  // Blue
-    };
-
-    // Camera
+    // World / camera / skin
+    HxWorld world = hx_make_world();
     HxCam cam = hx_make_cam3d();
     hx_set_cam_persp(cam, 60.0f, 320.0f / 240.0f, 0.1f, 100.0f);
     HxVec3 eye = {0, 0, 3};
     HxVec3 target = {0, 0, 0};
     HxVec3 up = {0, 1, 0};
     hx_look(cam, &target, &eye, &up);
+    HxSkin skin = hx_make_skin(HX_WHITE, HX_SKIN_UNLIT | HX_SKIN_DOUBLE_SIDED);
+    if (!world || !cam || !skin)
+    {
+        fprintf(stderr, "Failed to create world/camera/skin\n");
+        if (skin)
+            hx_drop_skin(skin);
+        if (cam)
+            hx_drop_cam(cam);
+        if (world)
+            hx_drop_world(world);
+        hx_drop_win(win);
+        hx_quit();
+        return 1;
+    }
 
-    // View-projection matrix
-    HxMat4 view, proj, vp;
-    hx_get_cam_view(cam, &view);
-    hx_get_cam_proj(cam, &proj);
-    hx_mul_mat4(&view, &proj, &vp);
+    // Triangle vertices (NDC: -1..1), per-vertex RGB colors
+    typedef struct
+    {
+        HxVec3 pos;
+        HxVec4 color;
+    } TriVertex;
+    const TriVertex vertices[3] = {
+        {{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},   // Top (red)
+        {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}}, // Bottom-left (green)
+        {{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},  // Bottom-right (blue)
+    };
+    HxMesh mesh =
+        hx_make_mesh(vertices, 3, HX_VERT_POS | HX_VERT_COLOR, sizeof(TriVertex), NULL, 0, false, HX_PRIM_TRIANGLES);
+    if (!mesh)
+    {
+        fprintf(stderr, "hx_make_mesh failed: %s\n", hx_last_error());
+        hx_drop_skin(skin);
+        hx_drop_cam(cam);
+        hx_drop_world(world);
+        hx_drop_win(win);
+        hx_quit();
+        return 1;
+    }
 
-    // Set up software renderer
-    extern void hx_soft_set_view_proj(const HxMat4*);
-    extern void hx_soft_draw_triangles(const HxVec3*, const HxVec3*, int);
-    extern void hx_soft_clear(void);
-    extern void hx_soft_get_pixels(void**, size_t*, int*, int*);
+    // Output buffer (320x240 RGBA8)
+    const int width = 320, height = 240;
+    const size_t stride = (size_t) width * 4;
+    uint8_t* pixels = (uint8_t*) malloc(stride * height);
+    if (!pixels)
+    {
+        fprintf(stderr, "Out of memory\n");
+        hx_drop_mesh(mesh);
+        hx_drop_skin(skin);
+        hx_drop_cam(cam);
+        hx_drop_world(world);
+        hx_drop_win(win);
+        hx_quit();
+        return 1;
+    }
 
-    hx_soft_set_view_proj(&vp);
-
-    // Render a few frames (spinning)
-    for (int frame = 0; frame < 10; ++frame) {
-        // Rotate triangle
+    // Render a few frames (spinning); save frame 5 as output
+    const int kSaveFrame = 5;
+    for (int frame = 0; frame < 10; ++frame)
+    {
+        // Rotate triangle around Y
         float angle = frame * 0.2f;
         HxQuat rot;
         HxVec3 axis = {0, 1, 0};
         hx_make_quat_axis_angle(&axis, angle, &rot);
-        HxMat4 rot_mat;
-        hx_make_mat4_rotate(&rot, &rot_mat);
+        HxVec3 t = {0, 0, 0};
+        HxVec3 s = {1, 1, 1};
+        HxMat4 transform;
+        hx_make_mat4_trs(&t, &rot, &s, &transform);
 
-        HxVec3 rotated[3];
-        for (int i = 0; i < 3; ++i) {
-            hx_rotate_vec_quat(&rot, &positions[i], &rotated[i]);
+        hx_clear_world(world);
+        hx_add_mesh(world, mesh, skin, &transform);
+
+        HxResult rr = hx_render_headless(width, height, world, cam, pixels, stride);
+        if (rr != HX_OK)
+        {
+            fprintf(stderr, "hx_render_headless failed: %s\n", hx_last_error());
+            free(pixels);
+            hx_drop_mesh(mesh);
+            hx_drop_skin(skin);
+            hx_drop_cam(cam);
+            hx_drop_world(world);
+            hx_drop_win(win);
+            hx_quit();
+            return 1;
         }
 
-        hx_soft_clear();
-        hx_soft_draw_triangles(rotated, colors, 3);
-
-        // Save frame 5 as output
-        if (frame == 5) {
-            void* pixels; size_t stride; int w, h;
-            hx_soft_get_pixels(&pixels, &stride, &w, &h);
-            write_png("triangle.png", w, h, pixels, stride);
+        if (frame == kSaveFrame)
+        {
+            if (!hx_png_write_rgba8("triangle.png", width, height, pixels, stride))
+            {
+                fprintf(stderr, "Failed to write triangle.png\n");
+                free(pixels);
+                hx_drop_mesh(mesh);
+                hx_drop_skin(skin);
+                hx_drop_cam(cam);
+                hx_drop_world(world);
+                hx_drop_win(win);
+                hx_quit();
+                return 1;
+            }
+            printf("Wrote triangle.png (%dx%d)\n", width, height);
         }
     }
 
     // Cleanup
+    free(pixels);
+    hx_drop_mesh(mesh);
+    hx_drop_skin(skin);
     hx_drop_cam(cam);
+    hx_drop_world(world);
     hx_drop_win(win);
     hx_quit();
 

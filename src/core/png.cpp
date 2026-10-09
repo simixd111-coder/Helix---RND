@@ -1,6 +1,7 @@
 #include "helix.h"
 #include "platform/platform_internal.h"
 #include "resource_internal.h"
+#include "png_internal.h"
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -9,15 +10,15 @@
 #include <vector>
 
 #if defined(HX_TEST_PNG_DIAGNOSTICS)
-#include <cstdio>
+#    include <cstdio>
 static void hx_png_trace(const char* stage)
 {
     std::fprintf(stderr, "PNG: %s\n", stage);
     std::fflush(stderr);
 }
-#define HX_PNG_TRACE(stage) hx_png_trace(stage)
+#    define HX_PNG_TRACE(stage) hx_png_trace(stage)
 #else
-#define HX_PNG_TRACE(stage) ((void)0)
+#    define HX_PNG_TRACE(stage) ((void) 0)
 #endif
 
 static void hx_png_u32(std::vector<uint8_t>& out, uint32_t value)
@@ -50,17 +51,17 @@ static void hx_png_chunk(std::vector<uint8_t>& png, const char type[4], const ui
     hx_png_u32(png, hx_png_crc32(png.data() + crc_start, size + 4u));
 }
 
-static bool hx_png_write_rgba8(const char* path, int width, int height, const void* pixels, size_t stride)
+bool hx_png_write_rgba8(const char* path, int width, int height, const void* pixels, size_t stride)
 {
     HX_PNG_TRACE("write start");
-    if (!path || !path[0] || width <= 0 || height <= 0 || !pixels ||
-        static_cast<size_t>(width) > std::numeric_limits<size_t>::max() / 4u)
+    if (!path || !path[0] || width <= 0 || height <= 0 || !pixels
+        || static_cast<size_t>(width) > std::numeric_limits<size_t>::max() / 4u)
         return false;
     HX_PNG_TRACE("input validation passed");
     const size_t row_bytes = static_cast<size_t>(width) * 4u;
-    if (stride < row_bytes || row_bytes == std::numeric_limits<size_t>::max() ||
-        (height > 1 && stride > (std::numeric_limits<size_t>::max() - row_bytes) / static_cast<size_t>(height - 1)) ||
-        static_cast<size_t>(height) > std::numeric_limits<size_t>::max() / (row_bytes + 1u))
+    if (stride < row_bytes || row_bytes == std::numeric_limits<size_t>::max()
+        || (height > 1 && stride > (std::numeric_limits<size_t>::max() - row_bytes) / static_cast<size_t>(height - 1))
+        || static_cast<size_t>(height) > std::numeric_limits<size_t>::max() / (row_bytes + 1u))
         return false;
     const size_t raw_size = static_cast<size_t>(height) * (row_bytes + 1u);
     const size_t block_count = raw_size / 65535u + (raw_size % 65535u != 0 ? 1u : 0u);

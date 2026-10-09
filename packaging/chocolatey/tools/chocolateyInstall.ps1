@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $packageName = 'helix-rnd'
-$version = '2.0.0'
+$version = '3.0.0'
 $releaseUrl = "https://github.com/simixd111-coder/Helix---RND/releases/download/v$version"
 $zipName = "helix-rnd-$version-windows-x64.zip"
 $url64 = "$releaseUrl/$zipName"

@@ -458,9 +458,13 @@
 | `build_atlas` | `hx_build_atlas()` | Pack & return texture |
 | `drop_atlas` | `hx_drop_atlas()` | Destroy atlas |
 | `font` | `HxFont`, `hx_load_font()` | TTF font |
-| `load_font` | `hx_load_font()` | Load font |
+| `load_font` | `hx_load_font()` | Load font from file |
+| `load_font_mem` | `hx_load_font_mem()` | Load font from memory |
+| `load_font_dpi` | `hx_load_font_dpi()` | Load font with custom DPI |
 | `drop_font` | `hx_drop_font()` | Destroy font |
-| `say` | `hx_say()` | Draw text (stub) |
+| `draw_text` | `hx_draw_text()` | Draw UTF-8 text |
+| `measure_text` | `hx_measure_text()` | Get text dimensions |
+| `say` | `hx_say()` | Draw text (legacy alias) |
 
 ---
 

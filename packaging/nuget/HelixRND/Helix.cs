@@ -153,6 +153,75 @@ namespace Helix
         }
     }
 
+    /// <summary>
+    /// Safe wrapper over a Helix font handle (HxFont).
+    /// Dispose drops the font; hx_quit() reclaims anything left over.
+    /// </summary>
+    public sealed class Font : IDisposable
+    {
+        internal IntPtr Handle;
+
+        private Font(IntPtr handle) => Handle = handle;
+
+        /// <summary>Load a TTF font from a file path. Returns null on failure.</summary>
+        public static Font? Load(string path, float size)
+        {
+            var h = Native.hx_load_font(path, size);
+            return h == IntPtr.Zero ? null : new Font(h);
+        }
+
+        /// <summary>Load a TTF font from raw byte data. Returns null on failure.</summary>
+        public static Font? Load(byte[] data, float size)
+        {
+            var h = Native.hx_load_font_mem(data, (UIntPtr)data.Length, size);
+            return h == IntPtr.Zero ? null : new Font(h);
+        }
+
+        /// <summary>Measure a UTF-8 string, returning (width, height) in pixels.</summary>
+        public (float W, float H) Measure(string text)
+        {
+            Native.hx_measure_text(Handle, text, out var w, out var h);
+            return (w, h);
+        }
+
+        /// <summary>Draw UTF-8 text at (x, y) in screen coordinates (top-left origin).</summary>
+        public void Draw(Win win, string text, float x, float y, in Color color)
+        {
+            Native.hx_draw_text(win.Handle, Handle, text, x, y, color);
+        }
+
+        public void Dispose()
+        {
+            if (Handle != IntPtr.Zero)
+            {
+                Native.hx_drop_font(Handle);
+                Handle = IntPtr.Zero;
+            }
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    /// <summary>RGBA color with components in [0, 1].</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Color
+    {
+        public float R;
+        public float G;
+        public float B;
+        public float A;
+
+        public Color(float r, float g, float b, float a = 1f)
+        {
+            R = r;
+            G = g;
+            B = b;
+            A = a;
+        }
+
+        public static Color White => new Color(1f, 1f, 1f, 1f);
+        public static Color Black => new Color(0f, 0f, 0f, 1f);
+    }
+
     /// <summary>Entry points for the Helix engine lifecycle.</summary>
     public static class Hx
     {
@@ -244,5 +313,20 @@ namespace Helix
 
         [DllImport(Lib, CallingConvention = CallingConvention.StdCall)]
         internal static extern double hx_get_win_time(IntPtr win);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.StdCall, CharSet = Utf8, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+        internal static extern IntPtr hx_load_font(string path, float size);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.StdCall)]
+        internal static extern IntPtr hx_load_font_mem(byte[] data, UIntPtr size, float pt_size);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.StdCall)]
+        internal static extern HxResult hx_drop_font(IntPtr font);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.StdCall, CharSet = Utf8, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+        internal static extern void hx_measure_text(IntPtr font, string text, out float w, out float h);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.StdCall, CharSet = Utf8, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+        internal static extern void hx_draw_text(IntPtr win, IntPtr font, string text, float x, float y, in Color color);
     }
 }

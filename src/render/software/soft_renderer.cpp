@@ -2,6 +2,7 @@
 #include "helix.h"
 #include "core/render_internal.h"
 #include "core/resource_internal.h"
+#include "soft_renderer_internal.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -11,18 +12,7 @@
 // -----------------------------------------------------------------------------
 // Software Renderer State
 // -----------------------------------------------------------------------------
-typedef struct
-{
-    uint8_t* color_buffer; // RGBA8
-    float* depth_buffer;   // Depth (0..1)
-    int width, height;
-    size_t stride;
-    HxMat4 view_proj;
-    HxVec3 clear_color;
-    float clear_depth;
-} HxSoftRenderer;
-
-static HxSoftRenderer g_soft = {0};
+HxSoftRenderer g_soft = {0};
 static bool g_soft_resource_tracked = false;
 
 // Forward declarations
@@ -30,7 +20,7 @@ void hx_soft_quit(void);
 
 static void hx_soft_destroy_resource(void* resource)
 {
-    (void)resource;
+    (void) resource;
     hx_soft_quit();
 }
 
@@ -48,8 +38,8 @@ bool hx_soft_init(int width, int height)
         hx_soft_quit();
     }
 
-    if (static_cast<size_t>(width) > SIZE_MAX / static_cast<size_t>(height) ||
-        static_cast<size_t>(width) > SIZE_MAX / 4u)
+    if (static_cast<size_t>(width) > SIZE_MAX / static_cast<size_t>(height)
+        || static_cast<size_t>(width) > SIZE_MAX / 4u)
         return false;
     const size_t pixel_count = static_cast<size_t>(width) * static_cast<size_t>(height);
     if (pixel_count > SIZE_MAX / (4u + sizeof(float)))
@@ -66,7 +56,7 @@ bool hx_soft_init(int width, int height)
         hx_soft_quit();
         return false;
     }
-    g_soft.clear_color = HxVec3{0.1f, 0.1f, 0.15f};
+    g_soft.clear_color = HxVec3 {0.1f, 0.1f, 0.15f};
     g_soft.clear_depth = 1.0f;
     hx_make_mat4_identity(&g_soft.view_proj);
     if (!hx_resource_register(&g_soft, color_bytes + depth_bytes, 0, hx_soft_destroy_resource))
@@ -106,12 +96,12 @@ void hx_soft_clear(void)
 {
     if (!g_soft.color_buffer)
         return;
-    uint32_t clear_rgba = ((uint32_t)(g_soft.clear_color.x * 255) << 0) |
-                          ((uint32_t)(g_soft.clear_color.y * 255) << 8) |
-                          ((uint32_t)(g_soft.clear_color.z * 255) << 16) | (0xFF << 24);
+    uint32_t clear_rgba = ((uint32_t) (g_soft.clear_color.x * 255) << 0)
+                          | ((uint32_t) (g_soft.clear_color.y * 255) << 8)
+                          | ((uint32_t) (g_soft.clear_color.z * 255) << 16) | (0xFF << 24);
     for (int y = 0; y < g_soft.height; ++y)
     {
-        uint32_t* row = (uint32_t*)(g_soft.color_buffer + y * g_soft.stride);
+        uint32_t* row = (uint32_t*) (g_soft.color_buffer + y * g_soft.stride);
         for (int x = 0; x < g_soft.width; ++x)
             row[x] = clear_rgba;
     }
@@ -144,7 +134,7 @@ static HxSoftVertex hx_soft_vs(const HxVec3* pos, const HxVec3* color, const HxV
     clip.y = mvp->m[0][1] * v.x + mvp->m[1][1] * v.y + mvp->m[2][1] * v.z + mvp->m[3][1] * v.w;
     clip.z = mvp->m[0][2] * v.x + mvp->m[1][2] * v.y + mvp->m[2][2] * v.z + mvp->m[3][2] * v.w;
     clip.w = mvp->m[0][3] * v.x + mvp->m[1][3] * v.y + mvp->m[2][3] * v.z + mvp->m[3][3] * v.w;
-    return HxSoftVertex{clip, *color, texcoord ? *texcoord : HxVec2{0.0f, 0.0f}};
+    return HxSoftVertex {clip, *color, texcoord ? *texcoord : HxVec2 {0.0f, 0.0f}};
 }
 
 // -----------------------------------------------------------------------------
@@ -158,16 +148,16 @@ static void hx_soft_draw_triangle(const HxSoftVertex* v0, const HxSoftVertex* v1
     float inv_w2 = 1.0f / v2->pos.w;
 
     // NDC to screen
-    int x0 = (int)((v0->pos.x * inv_w0 * 0.5f + 0.5f) * g_soft.width);
-    int y0 = (int)((-v0->pos.y * inv_w0 * 0.5f + 0.5f) * g_soft.height);
+    int x0 = (int) ((v0->pos.x * inv_w0 * 0.5f + 0.5f) * g_soft.width);
+    int y0 = (int) ((-v0->pos.y * inv_w0 * 0.5f + 0.5f) * g_soft.height);
     float z0 = v0->pos.z * inv_w0;
 
-    int x1 = (int)((v1->pos.x * inv_w1 * 0.5f + 0.5f) * g_soft.width);
-    int y1 = (int)((-v1->pos.y * inv_w1 * 0.5f + 0.5f) * g_soft.height);
+    int x1 = (int) ((v1->pos.x * inv_w1 * 0.5f + 0.5f) * g_soft.width);
+    int y1 = (int) ((-v1->pos.y * inv_w1 * 0.5f + 0.5f) * g_soft.height);
     float z1 = v1->pos.z * inv_w1;
 
-    int x2 = (int)((v2->pos.x * inv_w2 * 0.5f + 0.5f) * g_soft.width);
-    int y2 = (int)((-v2->pos.y * inv_w2 * 0.5f + 0.5f) * g_soft.height);
+    int x2 = (int) ((v2->pos.x * inv_w2 * 0.5f + 0.5f) * g_soft.width);
+    int y2 = (int) ((-v2->pos.y * inv_w2 * 0.5f + 0.5f) * g_soft.height);
     float z2 = v2->pos.z * inv_w2;
 
     // Bounding box
@@ -223,9 +213,9 @@ static void hx_soft_draw_triangle(const HxSoftVertex* v0, const HxSoftVertex* v1
                     }
 
                     uint8_t* pixel = g_soft.color_buffer + idx * 4u;
-                    pixel[0] = (uint8_t)(r * 255);
-                    pixel[1] = (uint8_t)(g * 255);
-                    pixel[2] = (uint8_t)(b * 255);
+                    pixel[0] = (uint8_t) (r * 255);
+                    pixel[1] = (uint8_t) (g * 255);
+                    pixel[2] = (uint8_t) (b * 255);
                     pixel[3] = 255;
                 }
             }
@@ -236,7 +226,10 @@ static void hx_soft_draw_triangle(const HxSoftVertex* v0, const HxSoftVertex* v1
 // -----------------------------------------------------------------------------
 // Public Draw API
 // -----------------------------------------------------------------------------
-void hx_soft_set_view_proj(const HxMat4* view_proj) { g_soft.view_proj = *view_proj; }
+void hx_soft_set_view_proj(const HxMat4* view_proj)
+{
+    g_soft.view_proj = *view_proj;
+}
 
 void hx_soft_draw_triangles(const HxVec3* positions, const HxVec3* colors, int count)
 {
@@ -251,8 +244,8 @@ void hx_soft_draw_triangles(const HxVec3* positions, const HxVec3* colors, int c
     }
 }
 
-static void hx_soft_draw_textured_triangles(const HxVec3* positions, const HxVec3* colors, const HxVec2* texcoords,
-                                            HxTex texture, int count)
+static void hx_soft_draw_textured_triangles(
+    const HxVec3* positions, const HxVec3* colors, const HxVec2* texcoords, HxTex texture, int count)
 {
     g_soft_texture_enabled = texture && hx_texture_get_render_data(texture, &g_soft_texture);
     for (int i = 0; i + 2 < count; i += 3)
@@ -281,7 +274,10 @@ void hx_soft_get_pixels(void** out_pixels, size_t* out_stride, int* out_w, int* 
     if (out_h)
         *out_h = g_soft.height;
 }
-static float hx_soft_clamp01(float value) { return value < 0.0f ? 0.0f : (value > 1.0f ? 1.0f : value); }
+static float hx_soft_clamp01(float value)
+{
+    return value < 0.0f ? 0.0f : (value > 1.0f ? 1.0f : value);
+}
 
 static int hx_soft_texture_index(int coordinate, int extent, HxTexFlags flags)
 {
@@ -340,9 +336,9 @@ static HxVec3 hx_soft_texture_sample(float u, float v)
     {
         for (int ix = 0; ix < 2; ++ix)
         {
-            const size_t offset = (static_cast<size_t>(ys[iy]) * static_cast<size_t>(g_soft_texture.width) +
-                                   static_cast<size_t>(xs[ix])) *
-                                  4u;
+            const size_t offset =
+                (static_cast<size_t>(ys[iy]) * static_cast<size_t>(g_soft_texture.width) + static_cast<size_t>(xs[ix]))
+                * 4u;
             const float weight = (ix ? tx : 1.0f - tx) * (iy ? ty : 1.0f - ty);
             for (int channel = 0; channel < 3; ++channel)
                 channels[channel] +=
@@ -390,12 +386,12 @@ HxResult hx_soft_render_world(int width, int height, HxWorld world, HxCam cam, v
         std::vector<HxVec2> texcoords;
         for (size_t item_index = 0; item_index < item_count; ++item_index)
         {
-            HxWorldMeshItem item{};
-            HxMeshRenderData mesh{};
-            HxColor skin_color{};
+            HxWorldMeshItem item {};
+            HxMeshRenderData mesh {};
+            HxColor skin_color {};
             HxTex texture = nullptr;
-            if (!hx_world_mesh_get(world, item_index, &item) || !hx_mesh_get_render_data(item.mesh, &mesh) ||
-                !hx_skin_get_render_data(item.skin, &skin_color, &texture))
+            if (!hx_world_mesh_get(world, item_index, &item) || !hx_mesh_get_render_data(item.mesh, &mesh)
+                || !hx_skin_get_render_data(item.skin, &skin_color, &texture))
             {
                 hx_soft_quit();
                 return HX_ERR_INVALID_HANDLE;
@@ -417,11 +413,11 @@ HxResult hx_soft_render_world(int width, int height, HxWorld world, HxCam cam, v
                 if (index >= mesh.vertex_count)
                     return false;
                 positions.push_back(hx_soft_transform_position(mesh, item.transform, mesh.positions[index]));
-                const HxVec4 vertex_color = mesh.colors ? mesh.colors[index] : HxVec4{1, 1, 1, 1};
+                const HxVec4 vertex_color = mesh.colors ? mesh.colors[index] : HxVec4 {1, 1, 1, 1};
                 colors.push_back({hx_soft_clamp01(skin_color.r * vertex_color.x),
                                   hx_soft_clamp01(skin_color.g * vertex_color.y),
                                   hx_soft_clamp01(skin_color.b * vertex_color.z)});
-                texcoords.push_back(mesh.texcoords ? mesh.texcoords[index] : HxVec2{0.0f, 0.0f});
+                texcoords.push_back(mesh.texcoords ? mesh.texcoords[index] : HxVec2 {0.0f, 0.0f});
                 return true;
             };
             auto draw_triangle = [&](size_t a, size_t b, size_t c)
@@ -460,8 +456,8 @@ HxResult hx_soft_render_world(int width, int height, HxWorld world, HxCam cam, v
                 return HX_ERR_UNSUPPORTED;
             }
             if (!positions.empty())
-                hx_soft_draw_textured_triangles(positions.data(), colors.data(), texcoords.data(), texture,
-                                                static_cast<int>(positions.size()));
+                hx_soft_draw_textured_triangles(
+                    positions.data(), colors.data(), texcoords.data(), texture, static_cast<int>(positions.size()));
         }
         void* source = nullptr;
         size_t source_stride = 0;
@@ -477,7 +473,8 @@ HxResult hx_soft_render_world(int width, int height, HxWorld world, HxCam cam, v
         for (int y = 0; y < height; ++y)
         {
             memcpy(destination + static_cast<size_t>(y) * out_stride,
-                   source_bytes + static_cast<size_t>(y) * source_stride, row_bytes);
+                   source_bytes + static_cast<size_t>(y) * source_stride,
+                   row_bytes);
         }
     }
     catch (...)

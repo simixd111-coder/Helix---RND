@@ -2,6 +2,8 @@
 
 # Build directories
 build/
+build-test/
+build-wayland-test/
 out/
 bin/
 obj/

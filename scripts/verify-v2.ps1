@@ -25,11 +25,11 @@ foreach ($requiredOption in @(
 }
 
 $metadataChecks = @(
-    @{ Path = "CMakeLists.txt"; Pattern = 'VERSION 2\.0\.0' },
-    @{ Path = "include/helix.h"; Pattern = '^#define HX_VERSION_STRING "2\.0\.0"$' },
-    @{ Path = "packaging/nuget/HelixRND/HelixRND.csproj"; Pattern = '<Version>2\.0\.0</Version>' },
-    @{ Path = "packaging/chocolatey/helix-rnd.nuspec"; Pattern = '<version>2\.0\.0</version>' },
-    @{ Path = "packaging/chocolatey/tools/chocolateyInstall.ps1"; Pattern = '^\$version = ''2\.0\.0''$' }
+    @{ Path = "CMakeLists.txt"; Pattern = 'VERSION 3\.0\.0' },
+    @{ Path = "include/helix.h"; Pattern = '^#define HX_VERSION_STRING "3\.0\.0"$' },
+    @{ Path = "packaging/nuget/HelixRND/HelixRND.csproj"; Pattern = '<Version>3\.0\.0</Version>' },
+    @{ Path = "packaging/chocolatey/helix-rnd.nuspec"; Pattern = '<version>3\.0\.0</version>' },
+    @{ Path = "packaging/chocolatey/tools/chocolateyInstall.ps1"; Pattern = '^\$version = ''3\.0\.0''$' }
 )
 foreach ($check in $metadataChecks) {
     $filePath = Join-Path $repoRoot $check.Path
@@ -44,7 +44,7 @@ foreach ($workflow in @(".github/workflows/ci.yml", ".github/workflows/release.y
     }
 }
 
-Write-Host "Building Helix RND 2.0.0 ($Configuration)..."
+Write-Host "Building Helix RND 3.0.0 ($Configuration)..."
 & cmake --build $buildPath --config $Configuration --parallel
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed with exit code $LASTEXITCODE."
@@ -56,4 +56,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "CTest failed with exit code $LASTEXITCODE."
 }
 
-Write-Host "Helix RND 2.0.0 verification passed."
+Write-Host "Helix RND 3.0.0 verification passed."

@@ -235,6 +235,7 @@ set(HELIX_RENDER_SOFTWARE_SOURCES
     src/render/software/soft_rasterizer.cpp
     src/render/software/soft_shader.cpp
     src/render/software/soft_texture.cpp
+    src/render/software/soft_font.cpp
 )
 
 # -----------------------------------------------------------------------------
@@ -362,6 +363,7 @@ if(HX_BACKEND_SOFTWARE)
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/thirdparty/stb
     )
 
     target_link_libraries(helix-render-software PRIVATE helix-core helix-platform)
@@ -439,7 +441,7 @@ if(HX_BUILD_TESTS)
 
     set(HELIX_TESTS test_math test_handles test_pic test_resources test_gpu test_gltf test_sprite test_tween test_api_capabilities)
     if(HX_BACKEND_SOFTWARE)
-        list(APPEND HELIX_TESTS test_error test_platform_stub test_ecs test_soft_renderer test_scene_render test_atlas)
+        list(APPEND HELIX_TESTS test_error test_platform_stub test_ecs test_soft_renderer test_scene_render test_atlas test_font)
     endif()
     foreach(test_name IN LISTS HELIX_TESTS)
         add_executable(${test_name} tests/${test_name}.cpp)
@@ -467,6 +469,33 @@ if(HX_BUILD_TESTS)
             COMMAND helix_demo_headless
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         )
+
+        # Visual regression: compare demo output against committed reference.
+        if(HX_BACKEND_SOFTWARE)
+            add_executable(test_png_compare tests/test_png_compare.cpp)
+            hx_apply_compile_options(test_png_compare)
+            set_target_properties(test_png_compare PROPERTIES LINKER_LANGUAGE CXX)
+            set(HX_TRIANGLE_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}/triangle_reference.png)
+            add_custom_command(
+                OUTPUT ${HX_TRIANGLE_REFERENCE}
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/triangle.png
+                        ${HX_TRIANGLE_REFERENCE}
+                DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tests/references/triangle.png
+                COMMENT "Copying visual regression reference"
+            )
+            add_custom_target(helix_visual_reference DEPENDS ${HX_TRIANGLE_REFERENCE})
+            add_dependencies(test_png_compare helix_visual_reference)
+            add_test(NAME visual_regression_triangle
+                COMMAND test_png_compare
+                        ${CMAKE_CURRENT_BINARY_DIR}/triangle.png
+                        ${HX_TRIANGLE_REFERENCE}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            )
+            set_tests_properties(visual_regression_triangle PROPERTIES
+                DEPENDS helix_headless_triangle
+            )
+        endif()
     endif()
 endif()
 

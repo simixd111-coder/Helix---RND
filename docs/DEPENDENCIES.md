@@ -1,7 +1,7 @@
 # Helix RND — Dependencies & Licenses
 
-**Version:** 2.5.0
-**Dependencies:** No new third-party dependencies in this release.
+**Version:** 3.0.0
+**Dependencies:** stb_truetype added in this release for TTF font rasterization.
 **Policy:** Third-party code is vendored. The software backend has no GPU runtime requirement; Vulkan mode dynamically loads the operating-system Vulkan loader and a compatible driver.
 
 ---
@@ -11,6 +11,7 @@
 | Library | Purpose | License | Source | Status |
 |---------|---------|---------|--------|--------|
 | **stb_image** | PNG, JPEG, BMP, TGA, PNM and other CPU image decoding | MIT / public domain | `src/thirdparty/stb/stb_image.h` | Vendored |
+| **stb_truetype** | TTF font rasterization for text rendering | MIT / public domain | `src/thirdparty/stb/stb_truetype.h` | Vendored and used by software renderer |
 | **Vulkan-Headers** | Vulkan API declarations | Apache-2.0 OR MIT | `src/thirdparty/vulkan/` | Vendored, not yet used by renderer |
 | **Volk** | Dynamic Vulkan function loader | MIT | `src/thirdparty/volk/` | Vendored and used for Vulkan device/buffer operations |
 | **cgltf** | glTF 2.0 / GLB parsing | MIT | `src/thirdparty/cgltf.h` | Vendored and used for static mesh import |
@@ -21,7 +22,6 @@
 
 | Library | Purpose | License | Vendoring Method |
 |---------|---------|---------|------------------|
-| **stb_truetype** | TTF font rasterization | MIT | Single header, embed in `src/thirdparty/stb/` |
 | **stb_image_write** | PNG output for demos/tests | MIT | Single header, embed in `src/thirdparty/stb/` |
 | **fast_obj** | OBJ loading | MIT | Single header, embed in `src/thirdparty/fast_obj/` |
 | **glad** | OpenGL loader (generated) | MIT | Generate at build, embed in `src/thirdparty/glad/` |
