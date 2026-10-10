@@ -35,6 +35,9 @@ static void hx_font_destroy_resource(void* resource)
     HxFontImpl* font = (HxFontImpl*) resource;
     if (font)
     {
+        // The font data copy is stored inline right after the struct
+        unsigned char** data_ptr = (unsigned char**) ((char*) font + sizeof(HxFontImpl));
+        free(*data_ptr);
         free(font);
     }
 }
@@ -97,7 +100,8 @@ HxFont hx_font_load_from_memory(const void* data, size_t size, float pt_size)
         return NULL;
     }
 
-    HxFontImpl* font = (HxFontImpl*) calloc(1, sizeof(HxFontImpl));
+    // Allocate room for the inline font data pointer stored after the struct
+    HxFontImpl* font = (HxFontImpl*) calloc(1, sizeof(HxFontImpl) + sizeof(unsigned char*));
     if (!font)
     {
         free(font_data);

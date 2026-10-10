@@ -80,7 +80,12 @@ jobs:
                   if name and re.search(r"^Test Failed\.", block, flags=re.M):
                       test_name = name.group(1)
                       suffix = ".exe" if os.name == "nt" else ""
-                      executable = Path.cwd() / f"{test_name}{suffix}"
+                      # Some CTest test names differ from their executable names
+                      exe_names = {
+                          "helix_headless_triangle": "helix_demo_headless",
+                          "visual_regression_triangle": "test_png_compare",
+                      }
+                      executable = Path.cwd() / (exe_names.get(test_name, test_name) + suffix)
                       try:
                           result = subprocess.run(
                               [str(executable)], cwd=Path.cwd(), capture_output=True,
@@ -141,7 +146,7 @@ jobs:
       - name: Install Wayland dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libwayland-dev libwayland-cursor-dev wayland-protocols
+          sudo apt-get install -y ninja-build libwayland-dev wayland-protocols
 
       - name: Configure CMake (Wayland)
         shell: bash

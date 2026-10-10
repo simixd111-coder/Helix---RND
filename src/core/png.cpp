@@ -4,13 +4,12 @@
 #include "png_internal.h"
 #include <algorithm>
 #include <cstdint>
-#include <fstream>
+#include <cstdio>
 #include <iterator>
 #include <limits>
 #include <vector>
 
 #if defined(HX_TEST_PNG_DIAGNOSTICS)
-#    include <cstdio>
 static void hx_png_trace(const char* stage)
 {
     std::fprintf(stderr, "PNG: %s\n", stage);
@@ -136,13 +135,14 @@ bool hx_png_write_rgba8(const char* path, int width, int height, const void* pix
     {
         return false;
     }
-    std::ofstream file(path, std::ios::binary);
+    FILE* file = std::fopen(path, "wb");
     if (!file)
         return false;
     HX_PNG_TRACE("output file opened");
-    file.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
+    const bool write_ok = std::fwrite(png.data(), 1, png.size(), file) == png.size();
     HX_PNG_TRACE("PNG bytes written");
-    return file.good();
+    std::fclose(file);
+    return write_ok;
 }
 
 HX_API HxResult HX_CALL hx_save_pic(HxPic picture, const char* path)
