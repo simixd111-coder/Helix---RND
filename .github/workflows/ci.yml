@@ -146,7 +146,10 @@ jobs:
       - name: Install Wayland dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libwayland-dev wayland-protocols
+          # The Linux platform layer unconditionally builds the X11 backend
+          # (HX_PLATFORM_WAYLAND is not implemented yet; Wayland sessions run
+          # through XWayland), so X11 headers are required to compile.
+          sudo apt-get install -y ninja-build libx11-dev libwayland-dev wayland-protocols
 
       - name: Configure CMake (Wayland)
         shell: bash
