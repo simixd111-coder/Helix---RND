@@ -32,11 +32,11 @@ struct HxFontImpl
 
 static void hx_font_destroy_resource(void* resource)
 {
-    HxFontImpl* font = (HxFontImpl*) resource;
+    HxFontImpl* font = static_cast<HxFontImpl*>(resource);
     if (font)
     {
         // The font data copy is stored inline right after the struct
-        unsigned char** data_ptr = (unsigned char**) ((char*) font + sizeof(HxFontImpl));
+        unsigned char** data_ptr = reinterpret_cast<unsigned char**>((char*)font + sizeof(HxFontImpl));
         free(*data_ptr);
         free(font);
     }
@@ -61,7 +61,7 @@ HxFont hx_font_load_from_file(const char* path, float pt_size)
         return NULL;
     }
 
-    unsigned char* data = (unsigned char*) malloc(file_size);
+    unsigned char* data = static_cast<unsigned char*>(malloc(file_size));
     if (!data)
     {
         fclose(f);
@@ -77,7 +77,7 @@ HxFont hx_font_load_from_file(const char* path, float pt_size)
         return NULL;
     }
 
-    HxFont font = hx_font_load_from_memory(data, file_size, pt_size);
+    HxFont font = hx_font_load_from_memory(data, static_cast<size_t>(file_size), pt_size);
     free(data); // hx_font_load_from_memory makes its own copy
     return font;
 }
@@ -88,7 +88,7 @@ HxFont hx_font_load_from_memory(const void* data, size_t size, float pt_size)
         return NULL;
 
     // Make a copy of the font data since stb_truetype doesn't own it
-    unsigned char* font_data = (unsigned char*) malloc(size);
+    unsigned char* font_data = static_cast<unsigned char*>(malloc(size));
     if (!font_data)
         return NULL;
     memcpy(font_data, data, size);
@@ -101,7 +101,7 @@ HxFont hx_font_load_from_memory(const void* data, size_t size, float pt_size)
     }
 
     // Allocate room for the inline font data pointer stored after the struct
-    HxFontImpl* font = (HxFontImpl*) calloc(1, sizeof(HxFontImpl) + sizeof(unsigned char*));
+    HxFontImpl* font = static_cast<HxFontImpl*>(calloc(1, sizeof(HxFontImpl) + sizeof(unsigned char*)));
     if (!font)
     {
         free(font_data);
@@ -112,9 +112,9 @@ HxFont hx_font_load_from_memory(const void* data, size_t size, float pt_size)
     font->pt_size = pt_size;
     font->scale = stbtt_ScaleForPixelHeight(&info, pt_size);
     stbtt_GetFontVMetrics(&info, &font->ascent, &font->descent, &font->line_gap);
-    font->ascent = (int) (font->ascent * font->scale);
-    font->descent = (int) (font->descent * font->scale);
-    font->line_gap = (int) (font->line_gap * font->scale);
+    font->ascent = static_cast<int>(font->ascent * font->scale);
+    font->descent = static_cast<int>(font->descent * font->scale);
+    font->line_gap = static_cast<int>(font->line_gap * font->scale);
 
     // Store the font data pointer so we can free it later
     // We'll store it in the resource tracking system
@@ -129,10 +129,10 @@ HxFont hx_font_load_from_memory(const void* data, size_t size, float pt_size)
     }
 
     // Store the font data pointer after the struct
-    unsigned char** data_ptr = (unsigned char**) ((char*) font + sizeof(HxFontImpl));
+    unsigned char** data_ptr = reinterpret_cast<unsigned char**>((char*)font + sizeof(HxFontImpl));
     *data_ptr = font_data;
 
-    return (HxFont) font;
+    return reinterpret_cast<HxFont>(font);
 }
 
 HxFont hx_font_load_from_file_dpi(const char* path, float pt_size, float dpi)
@@ -166,7 +166,7 @@ void hx_font_measure(HxFont font, const char* text, float* out_width, float* out
         return;
     }
 
-    HxFontImpl* f = (HxFontImpl*) font;
+    HxFontImpl* f = reinterpret_cast<HxFontImpl*>(font);
     float x = 0;
     float max_width = 0;
     int prev_codepoint = 0;
@@ -225,7 +225,7 @@ void hx_font_measure(HxFont font, const char* text, float* out_width, float* out
     if (out_width)
         *out_width = max_width;
     if (out_height)
-        *out_height = (float) (f->ascent - f->descent + f->line_gap);
+        *out_height = static_cast<float>(f->ascent - f->descent + f->line_gap);
 }
 
 // -----------------------------------------------------------------------------
@@ -248,7 +248,7 @@ static void hx_soft_draw_glyph(HxFontImpl* font, int codepoint, float x, float y
     if (glyph_w <= 0 || glyph_h <= 0)
         return;
 
-    unsigned char* bitmap = (unsigned char*) malloc(glyph_w * glyph_h);
+    unsigned char* bitmap = static_cast<unsigned char*>(malloc(static_cast<size_t>(glyph_w) * static_cast<size_t>(glyph_h)));
     if (!bitmap)
         return;
 
@@ -256,8 +256,8 @@ static void hx_soft_draw_glyph(HxFontImpl* font, int codepoint, float x, float y
         &font->info, bitmap, glyph_w, glyph_h, glyph_w, font->scale, font->scale, 0, 0, glyph_index);
 
     // Draw the glyph bitmap with alpha blending
-    int draw_x = (int) (x + x0);
-    int draw_y = (int) (y + font->ascent + y0); // y0 is negative (above baseline)
+    int draw_x = static_cast<int>(x + x0);
+    int draw_y = static_cast<int>(y + font->ascent + y0); // y0 is negative (above baseline)
 
     for (int gy = 0; gy < glyph_h; ++gy)
     {
@@ -275,7 +275,7 @@ static void hx_soft_draw_glyph(HxFontImpl* font, int codepoint, float x, float y
             if (alpha == 0)
                 continue;
 
-            size_t idx = (size_t) screen_y * (size_t) g_soft.width + (size_t) screen_x;
+            size_t idx = static_cast<size_t>(screen_y) * static_cast<size_t>(g_soft.width) + static_cast<size_t>(screen_x);
             uint8_t* pixel = g_soft.color_buffer + idx * 4u;
 
             float src_a = alpha / 255.0f;
@@ -293,10 +293,10 @@ static void hx_soft_draw_glyph(HxFontImpl* font, int codepoint, float x, float y
             float out_b = src_b * src_a + dst_b * (1.0f - src_a);
             float out_a = src_a + dst_a * (1.0f - src_a);
 
-            pixel[0] = (uint8_t) (out_r * 255);
-            pixel[1] = (uint8_t) (out_g * 255);
-            pixel[2] = (uint8_t) (out_b * 255);
-            pixel[3] = (uint8_t) (out_a * 255);
+            pixel[0] = static_cast<uint8_t>(out_r * 255);
+            pixel[1] = static_cast<uint8_t>(out_g * 255);
+            pixel[2] = static_cast<uint8_t>(out_b * 255);
+            pixel[3] = static_cast<uint8_t>(out_a * 255);
         }
     }
 
@@ -309,7 +309,7 @@ void hx_soft_draw_text(HxWin win, HxFont font, const char* text, float x, float 
     if (!font || !text || !g_soft.color_buffer)
         return;
 
-    HxFontImpl* f = (HxFontImpl*) font;
+    HxFontImpl* f = reinterpret_cast<HxFontImpl*>(font);
     float pen_x = x;
     float pen_y = y;
     int prev_codepoint = 0;
@@ -346,21 +346,21 @@ void hx_soft_draw_text(HxWin win, HxFont font, const char* text, float x, float 
         if (codepoint == '\n')
         {
             pen_x = x;
-            pen_y += f->ascent - f->descent + f->line_gap;
+            pen_y += static_cast<float>(f->ascent - f->descent + f->line_gap);
             prev_codepoint = 0;
             continue;
         }
 
         if (prev_codepoint)
         {
-            pen_x += stbtt_GetCodepointKernAdvance(&f->info, prev_codepoint, codepoint) * f->scale;
+            pen_x += static_cast<float>(stbtt_GetCodepointKernAdvance(&f->info, prev_codepoint, codepoint) * f->scale);
         }
 
         hx_soft_draw_glyph(f, codepoint, pen_x, pen_y, color);
 
         int advance, lsb;
         stbtt_GetCodepointHMetrics(&f->info, codepoint, &advance, &lsb);
-        pen_x += advance * f->scale;
+        pen_x += static_cast<float>(advance * f->scale);
         prev_codepoint = codepoint;
     }
 }
