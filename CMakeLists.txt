@@ -441,7 +441,7 @@ if(HX_BUILD_TESTS)
 
     set(HELIX_TESTS test_math test_handles test_pic test_resources test_gpu test_gltf test_sprite test_tween test_api_capabilities)
     if(HX_BACKEND_SOFTWARE)
-        list(APPEND HELIX_TESTS test_error test_platform_stub test_ecs test_soft_renderer test_scene_render test_atlas test_font)
+        list(APPEND HELIX_TESTS test_error test_platform_stub test_ecs test_soft_renderer test_scene_render test_atlas test_font test_3d_game)
     endif()
     foreach(test_name IN LISTS HELIX_TESTS)
         add_executable(${test_name} tests/${test_name}.cpp)
