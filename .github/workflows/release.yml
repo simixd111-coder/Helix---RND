@@ -104,9 +104,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path "pkg/$zipName/include" | Out-Null
           New-Item -ItemType Directory -Force -Path "pkg/$zipName/lib" | Out-Null
           Copy-Item include/helix.h "pkg/$zipName/include/"
-          Copy-Item build/helix-core.lib "pkg/$zipName/lib/"
-          Copy-Item build/helix-platform.lib "pkg/$zipName/lib/"
-          Copy-Item build/helix-render-software.lib "pkg/$zipName/lib/"
+          # Find and copy static libraries (handle different output locations)
+          Get-ChildItem build -Recurse -Filter "helix-*.lib" | ForEach-Object {
+            Copy-Item $_.FullName "pkg/$zipName/lib/"
+          }
           Copy-Item LICENSE "pkg/$zipName/"
           Compress-Archive -Path "pkg/$zipName" -DestinationPath "pkg/$zipName.zip"
           $hash = (Get-FileHash "pkg/$zipName.zip" -Algorithm SHA256).Hash
