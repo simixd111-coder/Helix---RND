@@ -1,6 +1,6 @@
 # Helix RND — Dependencies & Licenses
 
-**Version:** 3.0.0
+**Version:** 4.0.0
 **Dependencies:** stb_truetype added in this release for TTF font rasterization.
 **Policy:** Third-party code is vendored. The software backend has no GPU runtime requirement; Vulkan mode dynamically loads the operating-system Vulkan loader and a compatible driver.
 

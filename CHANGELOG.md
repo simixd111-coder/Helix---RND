@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-10-11
+
+### Fixed
+- **Font memory leak (ASAN)**: Fixed 4 memory leaks (1.5 MB total) in `test_font` by ensuring `hx_font_drop` properly frees font resources after `hx_resource_unregister`. The destroy callback is only invoked during `hx_resource_release_all`, not during unregister.
+- **Compiler warnings (`-Werror`)**: Replaced all old-style C casts in `soft_font.cpp` with `static_cast`/`reinterpret_cast` and fixed sign-conversion warnings.
+- **Release Build CI**: Added missing `libx11-dev` dependency installation to the Release Build job, unblocking Linux release packaging.
+
+### Changed
+- CI pipeline now fully green across all configurations: Linux (ASAN, UBSAN), Windows, Wayland, Static Analysis, and Release Build.
+- Version bumped to 4.0.0 across all metadata (CMake, docs, NuGet, Chocolatey).
+
 ## [2.5.0] - 2026-10-07
 
 ### Added

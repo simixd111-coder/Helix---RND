@@ -90,7 +90,7 @@ helix-rnd-2.5.0-windows-x64/
 ```
 
 ```powershell
-$version = "2.5.0"
+$version = "4.0.0"
 $zipName = "helix-rnd-$version-windows-x64"
 $staging = "pkg/$zipName"
 

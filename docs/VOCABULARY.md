@@ -1,6 +1,6 @@
 # Helix Vocabulary — Token Dictionary
 
-**Version:** 2.5.0
+**Version:** 4.0.0
 **Status:** Living document — updated with the public API
 **Source of truth:** `include/helix.h` — this document must match the header exactly.
 

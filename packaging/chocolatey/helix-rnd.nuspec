@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>helix-rnd</id>
-    <version>3.0.0</version>
+    <version>4.0.0</version>
     <title>Helix RND</title>
     <authors>Gimenez Simón</authors>
     <owners>Gimenez Simón</owners>
