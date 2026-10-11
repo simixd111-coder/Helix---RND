@@ -150,7 +150,9 @@ void hx_font_drop(HxFont font)
         return;
     if (!hx_resource_unregister(font))
         return;
-    // hx_font_destroy_resource will be called by resource system
+    // Unregister only removes the resource from tracking; it does not invoke the
+    // destroy callback. Free the font here, matching the other drop functions.
+    hx_font_destroy_resource(font);
 }
 
 void hx_font_measure(HxFont font, const char* text, float* out_width, float* out_height)
