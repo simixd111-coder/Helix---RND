@@ -231,6 +231,46 @@ jobs:
           cd build
           ctest --output-on-failure --parallel 1
 
+      - name: Report failed CTest cases
+        if: failure()
+        shell: bash
+        working-directory: build
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import os
+          import subprocess
+
+          path = Path("Testing/Temporary/LastTest.log")
+          if path.exists():
+              text = path.read_text(errors="replace")
+              for block in re.split(r"(?=^\d+/\d+ Testing:)", text, flags=re.M):
+                  name = re.search(r"^\d+/\d+ Test: ([^\r\n]+)", block, flags=re.M)
+                  if name and re.search(r"^Test Failed\.", block, flags=re.M):
+                      test_name = name.group(1)
+                      suffix = ".exe" if os.name == "nt" else ""
+                      # Some CTest test names differ from their executable names
+                      exe_names = {
+                          "helix_headless_triangle": "helix_demo_headless",
+                          "visual_regression_triangle": "test_png_compare",
+                      }
+                      executable = Path.cwd() / (exe_names.get(test_name, test_name) + suffix)
+                      try:
+                          result = subprocess.run(
+                              [str(executable)], cwd=Path.cwd(), capture_output=True,
+                              text=True, errors="replace", timeout=30
+                          )
+                          output = (result.stdout + result.stderr).strip() or "no process output"
+                          detail = f"rerun exit={result.returncode}; {output}"
+                      except Exception as error:
+                          detail = f"rerun failed: {error}"
+                      message = f"{test_name}: {detail[-1200:]}"
+                      for source, replacement in (("%", "%25"), ("\r", "%0D"), ("\n", "%0A"), (":", "%3A"), (",", "%2C")):
+                          message = message.replace(source, replacement)
+                      print(f"::error title=CTest failure::{message}")
+          PY
+
   # Static Analysis
   static-analysis:
     name: Static Analysis
@@ -259,6 +299,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev
 
       - name: Configure Release
         run: |
